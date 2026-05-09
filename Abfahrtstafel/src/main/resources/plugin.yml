@@ -7,3 +7,16 @@ depend: [BKCommonLib, Train_Carts]
 commands:
   abfahrtstafel:
     description: Verwaltung der Abfahrtstafeln
+
+permissions:
+  abfahrtstafel.admin:
+    description: Vollzugriff auf alle Funktionen
+    default: op
+
+  abfahrtstafel.warn:
+    description: Warnmeldungen anzeigen und verwalten
+    default: op
+
+  abfahrtstafel.reload:
+    description: Konfiguration neu laden
+    default: op

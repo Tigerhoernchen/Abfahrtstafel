@@ -95,6 +95,10 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+            if (!checkPermission(sender, "abfahrtstafel.reload")) {
+                return true;
+            }
+
             reloadConfig();
             scheduleManager.load();
             warningManager.load();
@@ -103,12 +107,20 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         if (args.length == 1 && args[0].equalsIgnoreCase("clearstate")) {
+            if (!checkPermission(sender, "abfahrtstafel.admin")) {
+                return true;
+            }
+
             runtimeStateManager.clear();
             sender.sendMessage(ChatColor.GREEN + "Runtime-State wurde geleert.");
             return true;
         }
 
         if (args.length >= 2 && args[0].equalsIgnoreCase("trigger")) {
+            if (!checkPermission(sender, "abfahrtstafel.admin")) {
+                return true;
+            }
+
             String stationAndRail = joinArgs(args, 1);
 
             if (!stationAndRail.contains(":")) {
@@ -132,10 +144,18 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         if (args.length >= 2 && args[0].equalsIgnoreCase("warn")) {
+            if (!checkPermission(sender, "abfahrtstafel.warn")) {
+                return true;
+            }
+
             return handleWarnCommand(sender, args);
         }
 
         if (args.length >= 3 && args[0].equalsIgnoreCase("give")) {
+            if (!checkPermission(sender, "abfahrtstafel.admin")) {
+                return true;
+            }
+
             if (!(sender instanceof Player player)) {
                 sender.sendMessage("Dieser Befehl kann nur im Spiel benutzt werden.");
                 return true;
@@ -236,6 +256,16 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn list");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn enable <id>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn disable <id>");
+    }
+
+    private boolean checkPermission(CommandSender sender, String permission) {
+        if (sender.hasPermission("abfahrtstafel.admin")
+                || sender.hasPermission(permission)) {
+            return true;
+        }
+
+        sender.sendMessage(ChatColor.RED + "Keine Berechtigung.");
+        return false;
     }
 
     private String joinArgs(String[] args, int startIndex) {
