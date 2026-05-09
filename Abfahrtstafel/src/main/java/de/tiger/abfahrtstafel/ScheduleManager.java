@@ -8,8 +8,10 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ScheduleManager {
 
@@ -51,22 +53,12 @@ public class ScheduleManager {
                     continue;
                 }
 
-                int orderIndex = Integer.parseInt(
-                        String.valueOf(rawGroup.get("orderIndex"))
-                );
+                int orderIndex = Integer.parseInt(String.valueOf(rawGroup.get("orderIndex")));
+                String groupName = String.valueOf(rawGroup.get("name"));
+                String parentStation = String.valueOf(rawGroup.get("parentStation"));
+                String departuresText = String.valueOf(rawGroup.get("departures"));
 
-                String groupName =
-                        String.valueOf(rawGroup.get("name"));
-
-                String parentStation =
-                        String.valueOf(rawGroup.get("parentStation"));
-
-                String departuresText =
-                        String.valueOf(rawGroup.get("departures"));
-
-                boolean finalStop =
-                        departuresText.equalsIgnoreCase("final");
-
+                boolean finalStop = departuresText.equalsIgnoreCase("final");
                 List<LocalTime> departures = new ArrayList<>();
 
                 if (!finalStop) {
@@ -84,20 +76,41 @@ public class ScheduleManager {
                 ));
             }
 
-            orderedRailGroups.sort(
-                    Comparator.comparingInt(OrderedRailGroup::getOrderIndex)
-            );
-
-            trainLines.add(new TrainLine(
-                    name,
-                    description,
-                    orderedRailGroups
-            ));
+            orderedRailGroups.sort(Comparator.comparingInt(OrderedRailGroup::getOrderIndex));
+            trainLines.add(new TrainLine(name, description, orderedRailGroups));
         }
 
-        plugin.getLogger().info(
-                "TrainLines geladen: " + trainLines.size() + " Linien"
-        );
+        plugin.getLogger().info("TrainLines geladen: " + trainLines.size() + " Linien");
+    }
+
+    public List<String> getStationNames() {
+        Set<String> stations = new HashSet<>();
+
+        for (TrainLine trainLine : trainLines) {
+            for (OrderedRailGroup group : trainLine.getOrderedRailGroups()) {
+                stations.add(group.getParentStation());
+            }
+        }
+
+        return stations.stream()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    public List<String> getRailGroupNames() {
+        Set<String> railGroups = new HashSet<>();
+
+        for (TrainLine trainLine : trainLines) {
+            for (OrderedRailGroup group : trainLine.getOrderedRailGroups()) {
+                if (!group.isFinalStop()) {
+                    railGroups.add(group.getName());
+                }
+            }
+        }
+
+        return railGroups.stream()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
     }
 
     public boolean processNextDeparture(String stationName, String railGroupName) {
@@ -105,41 +118,25 @@ public class ScheduleManager {
         ProcessCandidate bestCandidate = null;
 
         for (TrainLine trainLine : trainLines) {
-            List<OrderedRailGroup> groups =
-                    trainLine.getOrderedRailGroups();
+            for (OrderedRailGroup group : trainLine.getOrderedRailGroups()) {
+                boolean matchingStation = group.getParentStation().equalsIgnoreCase(stationName);
+                boolean matchingRailGroup = group.getName().equalsIgnoreCase(railGroupName);
 
-            for (OrderedRailGroup group : groups) {
-                boolean matchingStation =
-                        group.getParentStation().equalsIgnoreCase(stationName);
-
-                boolean matchingRailGroup =
-                        group.getName().equalsIgnoreCase(railGroupName);
-
-                if (!matchingStation ||
-                        !matchingRailGroup ||
-                        group.isFinalStop()) {
+                if (!matchingStation || !matchingRailGroup || group.isFinalStop()) {
                     continue;
                 }
 
                 for (LocalTime departureTime : group.getDepartures()) {
-                    if (isHiddenByStateOrTimeout(
-                            group.getParentStation(),
-                            group.getName(),
-                            trainLine.getName(),
-                            departureTime,
-                            now
-                    )) {
+                    if (isHiddenByStateOrTimeout(group.getParentStation(), group.getName(), trainLine.getName(), departureTime, now)) {
                         continue;
                     }
 
-                    long minutesLate =
-                            Duration.between(departureTime, now).toMinutes();
+                    long minutesLate = Duration.between(departureTime, now).toMinutes();
 
                     if (minutesLate < 0) {
                         continue;
                     }
 
-                    // Fahrten nach Mitternacht ignorieren
                     if (minutesLate > 12 * 60) {
                         continue;
                     }
@@ -148,8 +145,7 @@ public class ScheduleManager {
                         continue;
                     }
 
-                    if (bestCandidate == null ||
-                            minutesLate < bestCandidate.minutesUntil()) {
+                    if (bestCandidate == null || minutesLate < bestCandidate.minutesUntil()) {
                         bestCandidate = new ProcessCandidate(
                                 group.getParentStation(),
                                 group.getName(),
@@ -176,32 +172,22 @@ public class ScheduleManager {
         return true;
     }
 
-    public List<Departure> getNextDepartures(
-            String stationName,
-            String railGroupName,
-            int amount
-    ) {
+    public List<Departure> getNextDepartures(String stationName, String railGroupName, int amount) {
         LocalTime now = LocalTime.now();
         int lookAheadMinutes = plugin.getPlatformLookAheadMinutes();
 
         List<DepartureCandidate> candidates = new ArrayList<>();
 
         for (TrainLine trainLine : trainLines) {
-            List<OrderedRailGroup> groups =
-                    trainLine.getOrderedRailGroups();
+            List<OrderedRailGroup> groups = trainLine.getOrderedRailGroups();
 
             for (int i = 0; i < groups.size(); i++) {
                 OrderedRailGroup group = groups.get(i);
 
-                boolean matchingStation =
-                        group.getParentStation().equalsIgnoreCase(stationName);
+                boolean matchingStation = group.getParentStation().equalsIgnoreCase(stationName);
+                boolean matchingRailGroup = group.getName().equalsIgnoreCase(railGroupName);
 
-                boolean matchingRailGroup =
-                        group.getName().equalsIgnoreCase(railGroupName);
-
-                if (!matchingStation ||
-                        !matchingRailGroup ||
-                        group.isFinalStop()) {
+                if (!matchingStation || !matchingRailGroup || group.isFinalStop()) {
                     continue;
                 }
 
@@ -209,25 +195,17 @@ public class ScheduleManager {
                 String via = buildViaText(groups, i);
 
                 for (LocalTime departureTime : group.getDepartures()) {
-                    if (isHiddenByStateOrTimeout(
-                            group.getParentStation(),
-                            group.getName(),
-                            trainLine.getName(),
-                            departureTime,
-                            now
-                    )) {
+                    if (isHiddenByStateOrTimeout(group.getParentStation(), group.getName(), trainLine.getName(), departureTime, now)) {
                         continue;
                     }
 
                     long minutes = minutesUntil(now, departureTime);
 
-                    if (lookAheadMinutes >= 0 &&
-                            minutes > lookAheadMinutes) {
+                    if (lookAheadMinutes >= 0 && minutes > lookAheadMinutes) {
                         continue;
                     }
 
-                    long delayMinutes =
-                            calculateDelayMinutes(now, departureTime);
+                    long delayMinutes = calculateDelayMinutes(now, departureTime);
 
                     candidates.add(new DepartureCandidate(
                             minutes,
@@ -245,24 +223,19 @@ public class ScheduleManager {
         return toDepartures(candidates, amount);
     }
 
-    public List<Departure> getNextDeparturesForStation(
-            String stationName,
-            int amount
-    ) {
+    public List<Departure> getNextDeparturesForStation(String stationName, int amount) {
         LocalTime now = LocalTime.now();
         int lookAheadMinutes = plugin.getStationLookAheadMinutes();
 
         List<DepartureCandidate> candidates = new ArrayList<>();
 
         for (TrainLine trainLine : trainLines) {
-            List<OrderedRailGroup> groups =
-                    trainLine.getOrderedRailGroups();
+            List<OrderedRailGroup> groups = trainLine.getOrderedRailGroups();
 
             for (int i = 0; i < groups.size(); i++) {
                 OrderedRailGroup group = groups.get(i);
 
-                boolean matchingStation =
-                        group.getParentStation().equalsIgnoreCase(stationName);
+                boolean matchingStation = group.getParentStation().equalsIgnoreCase(stationName);
 
                 if (!matchingStation || group.isFinalStop()) {
                     continue;
@@ -272,25 +245,17 @@ public class ScheduleManager {
                 String via = buildViaText(groups, i);
 
                 for (LocalTime departureTime : group.getDepartures()) {
-                    if (isHiddenByStateOrTimeout(
-                            group.getParentStation(),
-                            group.getName(),
-                            trainLine.getName(),
-                            departureTime,
-                            now
-                    )) {
+                    if (isHiddenByStateOrTimeout(group.getParentStation(), group.getName(), trainLine.getName(), departureTime, now)) {
                         continue;
                     }
 
                     long minutes = minutesUntil(now, departureTime);
 
-                    if (lookAheadMinutes >= 0 &&
-                            minutes > lookAheadMinutes) {
+                    if (lookAheadMinutes >= 0 && minutes > lookAheadMinutes) {
                         continue;
                     }
 
-                    long delayMinutes =
-                            calculateDelayMinutes(now, departureTime);
+                    long delayMinutes = calculateDelayMinutes(now, departureTime);
 
                     candidates.add(new DepartureCandidate(
                             minutes,
@@ -315,43 +280,25 @@ public class ScheduleManager {
             LocalTime departureTime,
             LocalTime now
     ) {
-        if (plugin.getRuntimeStateManager().isProcessed(
-                station,
-                railGroup,
-                line,
-                departureTime
-        )) {
+        if (plugin.getRuntimeStateManager().isProcessed(station, railGroup, line, departureTime)) {
             return true;
         }
 
-        long minutesLate =
-                Duration.between(departureTime, now).toMinutes();
+        long minutesLate = Duration.between(departureTime, now).toMinutes();
 
-        // Noch in der Zukunft
         if (minutesLate < 0) {
             return false;
         }
 
-        // Wahrscheinlich Fahrt nach Mitternacht am Folgetag
-        // Beispiel:
-        // Jetzt 23:20, Abfahrt 01:02 -> 1338 Minuten
         if (minutesLate > 12 * 60) {
             return false;
         }
 
-        // Timeout überschritten
         if (minutesLate > plugin.getDepartureTimeoutMinutes()) {
             return true;
         }
 
-        // Nächste planmäßige Fahrt bereits erreicht
-        return hasNextDepartureReached(
-                station,
-                railGroup,
-                line,
-                departureTime,
-                now
-        );
+        return hasNextDepartureReached(station, railGroup, line, departureTime, now);
     }
 
     private boolean hasNextDepartureReached(
@@ -366,24 +313,16 @@ public class ScheduleManager {
                 continue;
             }
 
-            for (OrderedRailGroup group :
-                    trainLine.getOrderedRailGroups()) {
+            for (OrderedRailGroup group : trainLine.getOrderedRailGroups()) {
+                boolean matchingStation = group.getParentStation().equalsIgnoreCase(station);
+                boolean matchingRailGroup = group.getName().equalsIgnoreCase(railGroup);
 
-                boolean matchingStation =
-                        group.getParentStation().equalsIgnoreCase(station);
-
-                boolean matchingRailGroup =
-                        group.getName().equalsIgnoreCase(railGroup);
-
-                if (!matchingStation ||
-                        !matchingRailGroup ||
-                        group.isFinalStop()) {
+                if (!matchingStation || !matchingRailGroup || group.isFinalStop()) {
                     continue;
                 }
 
                 for (LocalTime otherTime : group.getDepartures()) {
-                    if (otherTime.isAfter(departureTime) &&
-                            !otherTime.isAfter(now)) {
+                    if (otherTime.isAfter(departureTime) && !otherTime.isAfter(now)) {
                         return true;
                     }
                 }
@@ -393,14 +332,9 @@ public class ScheduleManager {
         return false;
     }
 
-    private List<Departure> toDepartures(
-            List<DepartureCandidate> candidates,
-            int amount
-    ) {
+    private List<Departure> toDepartures(List<DepartureCandidate> candidates, int amount) {
         return candidates.stream()
-                .sorted(Comparator.comparingLong(
-                        DepartureCandidate::minutes
-                ))
+                .sorted(Comparator.comparingLong(DepartureCandidate::minutes))
                 .limit(amount)
                 .map(candidate -> new Departure(
                         candidate.time(),
@@ -418,19 +352,13 @@ public class ScheduleManager {
             return "Unbekannt";
         }
 
-        return groups.get(groups.size() - 1)
-                .getParentStation();
+        return groups.get(groups.size() - 1).getParentStation();
     }
 
-    private String buildViaText(
-            List<OrderedRailGroup> groups,
-            int currentIndex
-    ) {
+    private String buildViaText(List<OrderedRailGroup> groups, int currentIndex) {
         List<String> stations = new ArrayList<>();
 
-        for (int i = currentIndex + 1;
-             i < groups.size() - 1;
-             i++) {
+        for (int i = currentIndex + 1; i < groups.size() - 1; i++) {
             stations.add(groups.get(i).getParentStation());
         }
 
@@ -438,17 +366,12 @@ public class ScheduleManager {
     }
 
     private long minutesUntil(LocalTime now, LocalTime departureTime) {
-        long minutes =
-                Duration.between(now, departureTime).toMinutes();
+        long minutes = Duration.between(now, departureTime).toMinutes();
 
-        // Überfällige Abfahrt innerhalb Timeout
-        if (minutes < 0 &&
-                Math.abs(minutes)
-                        <= plugin.getDepartureTimeoutMinutes()) {
+        if (minutes < 0 && Math.abs(minutes) <= plugin.getDepartureTimeoutMinutes()) {
             return minutes;
         }
 
-        // Fahrt nach Mitternacht
         if (minutes < 0) {
             minutes += 24 * 60;
         }
@@ -456,14 +379,9 @@ public class ScheduleManager {
         return minutes;
     }
 
-    private long calculateDelayMinutes(
-            LocalTime now,
-            LocalTime departureTime
-    ) {
-        long rawMinutes =
-                Duration.between(departureTime, now).toMinutes();
+    private long calculateDelayMinutes(LocalTime now, LocalTime departureTime) {
+        long rawMinutes = Duration.between(departureTime, now).toMinutes();
 
-        // Fahrt nach Mitternacht -> keine Verspätung
         if (rawMinutes > 12 * 60) {
             return 0;
         }

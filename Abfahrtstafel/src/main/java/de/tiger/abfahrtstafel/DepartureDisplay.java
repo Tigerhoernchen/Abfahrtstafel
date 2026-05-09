@@ -81,7 +81,10 @@ public class DepartureDisplay extends MapDisplay {
             List<Departure> departures = AbfahrtstafelPlugin
                     .getInstance()
                     .getScheduleManager()
-                    .getNextDeparturesForStation(station, 8);
+                    .getNextDeparturesForStation(
+                            station,
+                            AbfahrtstafelPlugin.getInstance().getStationDisplayMaxEntries()
+                    );
 
             drawStationDisplay(width, height, station, departures, warnings);
         }

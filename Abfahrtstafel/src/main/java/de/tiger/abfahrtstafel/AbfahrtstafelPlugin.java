@@ -9,6 +9,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AbfahrtstafelPlugin extends JavaPlugin {
 
     private static AbfahrtstafelPlugin instance;
@@ -73,6 +76,18 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return getConfig().getInt("departureTimeoutMinutes", 5);
     }
 
+    public int getStationLookAheadMinutes() {
+        return getConfig().getInt("stationLookAheadMinutes", 120);
+    }
+
+    public int getPlatformLookAheadMinutes() {
+        return getConfig().getInt("platformLookAheadMinutes", 180);
+    }
+
+    public int getStationDisplayMaxEntries() {
+        return getConfig().getInt("stationDisplayMaxEntries", 12);
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("abfahrtstafel")) {
@@ -134,7 +149,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 MapDisplayProperties properties = MapDisplayProperties.createNew(DepartureDisplay.class);
                 properties.set("displayType", "station");
                 properties.set("station", station);
-                // properties.setDisplayName(ChatColor.AQUA + "Abfahrtstafel: " + station); // DisplayName auskommentiert, da er im Rahmen angezeigt wird.
 
                 ItemStack item = properties.getMapItem();
                 player.getInventory().addItem(item);
@@ -156,7 +170,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 properties.set("displayType", "platform");
                 properties.set("station", station);
                 properties.set("railGroup", railGroup);
-                // properties.setDisplayName(ChatColor.AQUA + "Gleisanzeige: " + station + ":" + railGroup); // DisplayName auskommentiert, da er im Rahmen angezeigt wird.
 
                 ItemStack item = properties.getMapItem();
                 player.getInventory().addItem(item);
@@ -239,11 +252,108 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return builder.toString();
     }
 
-    public int getStationLookAheadMinutes() {
-        return getConfig().getInt("stationLookAheadMinutes", 120);
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+
+        if (!command.getName().equalsIgnoreCase("abfahrtstafel")) {
+            return completions;
+        }
+
+        if (args.length == 1) {
+            completions.add("give");
+            completions.add("reload");
+            completions.add("clearstate");
+            completions.add("trigger");
+            completions.add("warn");
+            return filterCompletions(completions, args[0]);
+        }
+
+        if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("give")) {
+                completions.add("station");
+                completions.add("platform");
+                return filterCompletions(completions, args[1]);
+            }
+
+            if (args[0].equalsIgnoreCase("warn")) {
+                completions.add("list");
+                completions.add("enable");
+                completions.add("disable");
+                return filterCompletions(completions, args[1]);
+            }
+
+            if (args[0].equalsIgnoreCase("trigger")) {
+                completions.addAll(buildStationRailCompletions());
+                return filterCompletions(completions, args[1]);
+            }
+        }
+
+        if (args.length >= 3
+                && args[0].equalsIgnoreCase("give")
+                && args[1].equalsIgnoreCase("station")) {
+
+            String currentStationInput = joinArgs(args, 2);
+            completions.addAll(scheduleManager.getStationNames());
+            return filterCompletions(completions, currentStationInput);
+        }
+
+        if (args.length == 3
+                && args[0].equalsIgnoreCase("give")
+                && args[1].equalsIgnoreCase("platform")) {
+
+            completions.addAll(scheduleManager.getRailGroupNames());
+            return filterCompletions(completions, args[2]);
+        }
+
+        if (args.length >= 4
+                && args[0].equalsIgnoreCase("give")
+                && args[1].equalsIgnoreCase("platform")) {
+
+            String currentStationInput = joinArgs(args, 3);
+            completions.addAll(scheduleManager.getStationNames());
+            return filterCompletions(completions, currentStationInput);
+        }
+
+        if (args.length == 3
+                && args[0].equalsIgnoreCase("warn")
+                && (args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable"))) {
+
+            for (WarnMessage warning : warningManager.getWarnings()) {
+                completions.add(String.valueOf(warning.getId()));
+            }
+
+            return filterCompletions(completions, args[2]);
+        }
+
+        return completions;
     }
 
-    public int getPlatformLookAheadMinutes() {
-        return getConfig().getInt("platformLookAheadMinutes", 180);
+    private List<String> buildStationRailCompletions() {
+        List<String> result = new ArrayList<>();
+
+        if (scheduleManager == null) {
+            return result;
+        }
+
+        for (String station : scheduleManager.getStationNames()) {
+            for (String railGroup : scheduleManager.getRailGroupNames()) {
+                result.add(station + ":" + railGroup);
+            }
+        }
+
+        return result;
+    }
+
+    private List<String> filterCompletions(List<String> completions, String input) {
+        List<String> result = new ArrayList<>();
+
+        for (String completion : completions) {
+            if (completion.toLowerCase().startsWith(input.toLowerCase())) {
+                result.add(completion);
+            }
+        }
+
+        return result;
     }
 }
