@@ -1,0 +1,16 @@
+trainLines:
+  - name: CE1
+    description: CE1_Test
+    orderedRailGroups:
+      - orderIndex: 1
+        name: G1
+        parentStation: Start
+        departures: 5:00,6:00,7:00,8:00,9:00,9:30,10:00,18:20
+      - orderIndex: 2
+        name: G1
+        parentStation: Station 1
+        departures: 5:10,6:10,7:10,8:10,9:10,9:40,10:10,18:30
+      - orderIndex: 3
+        name: G1
+        parentStation: Station 2
+        departures: final

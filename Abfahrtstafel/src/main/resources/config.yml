@@ -1,0 +1,7 @@
+# Max delay in minutes before changing to the next entry. Default 5
+departureTimeoutMinutes: 5
+# Warning scrollspeed. Default: 1 tick
+warningScrollSpeedTicks: 1
+# Lookahead for entries in minutes. -1 for unlimited
+stationLookAheadMinutes: 120
+platformLookAheadMinutes: -1

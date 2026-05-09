@@ -1,0 +1,9 @@
+name: Abfahrtstafel
+version: 1.0
+main: de.tiger.abfahrtstafel.AbfahrtstafelPlugin
+api-version: '1.21'
+depend: [BKCommonLib, Train_Carts]
+
+commands:
+  abfahrtstafel:
+    description: Verwaltung der Abfahrtstafeln
