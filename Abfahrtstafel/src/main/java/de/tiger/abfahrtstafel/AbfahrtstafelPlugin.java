@@ -134,7 +134,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 MapDisplayProperties properties = MapDisplayProperties.createNew(DepartureDisplay.class);
                 properties.set("displayType", "station");
                 properties.set("station", station);
-                properties.setDisplayName(ChatColor.AQUA + "Abfahrtstafel: " + station);
+                // properties.setDisplayName(ChatColor.AQUA + "Abfahrtstafel: " + station); // DisplayName auskommentiert, da er im Rahmen angezeigt wird.
 
                 ItemStack item = properties.getMapItem();
                 player.getInventory().addItem(item);
@@ -156,7 +156,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 properties.set("displayType", "platform");
                 properties.set("station", station);
                 properties.set("railGroup", railGroup);
-                properties.setDisplayName(ChatColor.AQUA + "Gleisanzeige: " + station + ":" + railGroup);
+                // properties.setDisplayName(ChatColor.AQUA + "Gleisanzeige: " + station + ":" + railGroup); // DisplayName auskommentiert, da er im Rahmen angezeigt wird.
 
                 ItemStack item = properties.getMapItem();
                 player.getInventory().addItem(item);
