@@ -1,6 +1,12 @@
+
 # Abfahrtstafel
 
 Minecraft-Plugin für Paper/Spigot mit realistischen Bahnhofs- und Gleisanzeigen auf Karten.
+
+
+https://github.com/user-attachments/assets/e3c69a36-87c4-447c-b46e-7f2b64b5c8e0
+
+
 
 ## Vorwort
 > [!IMPORTANT]
@@ -13,6 +19,8 @@ Minecraft-Plugin für Paper/Spigot mit realistischen Bahnhofs- und Gleisanzeigen
 Ich versuche die .jar dazu immer aktuell zu halten. [Diese findest du hier](Abfahrtstafel/target)
 
 ## Funktionen
+
+
 
 - Große Bahnhofsanzeigen mit mehreren Abfahrten
 - Kleine Gleisanzeigen im Stil moderner DB-Monitore
