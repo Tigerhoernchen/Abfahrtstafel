@@ -147,3 +147,19 @@ warnMessages:
     active: true
     groups: Timber Hbf:1b
 ```
+
+# Permissions
+```
+permissions:
+  abfahrtstafel.admin:
+    description: Vollzugriff auf alle Funktionen
+    default: op
+
+  abfahrtstafel.warn:
+    description: Warnmeldungen anzeigen und verwalten
+    default: op
+
+  abfahrtstafel.reload:
+    description: Konfiguration neu laden
+    default: op
+```
