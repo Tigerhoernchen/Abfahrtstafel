@@ -162,7 +162,12 @@ warnMessages:
   - id: 2
     message: Hier könnte Ihre Warnung stehen
     active: true
-    groups: Timber Hbf:1b
+    groups: Stuttgart Hbf:16
+
+  - id: 2
+    message: Bahnhof+einzelnes Gleis
+    active: true
+    groups: München Hbf,Stuttgart Hbf:12
 ```
 
 # Permissions
