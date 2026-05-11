@@ -33,10 +33,10 @@ Ich versuche die .jar dazu immer aktuell zu halten. [Diese findest du hier](Abfa
 - Automatische Mitternachtsbehandlung
 
 # Voraussetzungen
-
-- Paper Server
-- BKCommonLib
-- TrainCarts (optional, für Trigger-Schilder)
+Bisher getestet auf
+Train_Carts: v1.21.11-v2 (build: 1686)
+BKCommonLib: v1.21.11-v1 (build: 1957)
+Server: Paper 1.21.11-127-bd74bf6 (MC: 1.21.11)
 
 # Befehle
 
