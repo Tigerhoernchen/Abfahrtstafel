@@ -143,9 +143,14 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return true;
             }
 
-            selectionManager.setPos1(player, block.getLocation());
+            Location frameLocation = block.getLocation()
+                    .add(getOppositeCardinalFacing(player).getModX(),
+                            getOppositeCardinalFacing(player).getModY(),
+                            getOppositeCardinalFacing(player).getModZ());
+
+            selectionManager.setPos1(player, frameLocation);
             sender.sendMessage(ChatColor.GREEN + "Position 1 gesetzt: "
-                    + formatLocation(block.getLocation()));
+                    + formatLocation(frameLocation));
             return true;
         }
 
@@ -166,9 +171,14 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return true;
             }
 
-            selectionManager.setPos2(player, block.getLocation());
+            Location frameLocation = block.getLocation()
+                    .add(getOppositeCardinalFacing(player).getModX(),
+                            getOppositeCardinalFacing(player).getModY(),
+                            getOppositeCardinalFacing(player).getModZ());
+
+            selectionManager.setPos2(player, frameLocation);
             sender.sendMessage(ChatColor.GREEN + "Position 2 gesetzt: "
-                    + formatLocation(block.getLocation()));
+                    + formatLocation(frameLocation));
             return true;
         }
 
@@ -375,18 +385,8 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         boolean flatY = minY == maxY;
         boolean flatZ = minZ == maxZ;
 
-        int flatCount = 0;
-        if (flatX) flatCount++;
-        if (flatY) flatCount++;
-        if (flatZ) flatCount++;
-
-        if (flatCount == 0) {
-            player.sendMessage(ChatColor.RED + "Die Auswahl muss eine flache Ebene sein.");
-            return 0;
-        }
-
-        if (flatY) {
-            player.sendMessage(ChatColor.RED + "Horizontale Flächen werden aktuell nicht unterstützt. Bitte eine Wand markieren.");
+        if (!flatX && !flatZ) {
+            player.sendMessage(ChatColor.RED + "Die Auswahl muss eine flache Wandfläche oder eine Linie an einer Wand sein.");
             return 0;
         }
 
@@ -398,17 +398,19 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         for (int y = maxY; y >= minY; y--) {
             for (int x = minX; x <= maxX; x++) {
                 for (int z = minZ; z <= maxZ; z++) {
+                    Location location = new Location(world, x + 0.5, y + 0.5, z + 0.5);
+
+                    // Bereits vorhandene ItemFrames an dieser Position überspringen
+                    if (hasItemFrameAt(location)) {
+                        skipped++;
+                        continue;
+                    }
+
+                    // Nur wenn dort noch kein ItemFrame hängt, störende Blöcke entfernen
                     Block block = world.getBlockAt(x, y, z);
 
                     if (!block.getType().isAir()) {
                         block.setType(Material.AIR);
-                    }
-
-                    Location location = new Location(world, x + 0.5, y + 0.5, z + 0.5);
-
-                    if (hasItemFrameAt(location)) {
-                        skipped++;
-                        continue;
                     }
 
                     ItemFrame frame;
@@ -449,9 +451,27 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     }
 
     private boolean hasItemFrameAt(Location location) {
-        return !location.getWorld().getNearbyEntities(location, 0.25, 0.25, 0.25, entity ->
-                entity instanceof ItemFrame
-        ).isEmpty();
+        World world = location.getWorld();
+
+        if (world == null) {
+            return false;
+        }
+
+        int blockX = location.getBlockX();
+        int blockY = location.getBlockY();
+        int blockZ = location.getBlockZ();
+
+        for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class)) {
+            Location frameLocation = frame.getLocation();
+
+            if (frameLocation.getBlockX() == blockX
+                    && frameLocation.getBlockY() == blockY
+                    && frameLocation.getBlockZ() == blockZ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private String formatLocation(Location location) {
@@ -502,47 +522,87 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     private int removeConnectedFrames(ItemFrame startFrame) {
         World world = startFrame.getWorld();
         BlockFace facing = startFrame.getFacing();
-
         Location start = startFrame.getLocation();
 
         int removed = 0;
 
-        for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class)) {
-            if (frame.getFacing() != facing) {
+        List<ItemFrame> toRemove = new ArrayList<>();
+        List<ItemFrame> open = new ArrayList<>();
+
+        open.add(startFrame);
+
+        while (!open.isEmpty()) {
+            ItemFrame current = open.remove(0);
+
+            if (toRemove.contains(current)) {
                 continue;
             }
 
-            Location location = frame.getLocation();
+            toRemove.add(current);
 
-            if (location.distance(start) > 8) {
-                continue;
-            }
+            Location currentLocation = current.getLocation();
 
-            boolean samePlane;
+            for (ItemFrame other : world.getEntitiesByClass(ItemFrame.class)) {
+                if (toRemove.contains(other) || open.contains(other)) {
+                    continue;
+                }
 
-            if (facing == BlockFace.NORTH || facing == BlockFace.SOUTH) {
-                samePlane = location.getBlockZ() == start.getBlockZ();
-            } else if (facing == BlockFace.EAST || facing == BlockFace.WEST) {
-                samePlane = location.getBlockX() == start.getBlockX();
-            } else {
-                samePlane = false;
-            }
+                if (other.getFacing() != facing) {
+                    continue;
+                }
 
-            if (!samePlane) {
-                continue;
-            }
+                Location otherLocation = other.getLocation();
 
-            int dx = Math.abs(location.getBlockX() - start.getBlockX());
-            int dy = Math.abs(location.getBlockY() - start.getBlockY());
-            int dz = Math.abs(location.getBlockZ() - start.getBlockZ());
+                if (!isSameFramePlane(facing, start, otherLocation)) {
+                    continue;
+                }
 
-            if (dx <= 8 && dy <= 8 && dz <= 8) {
-                frame.remove();
-                removed++;
+                if (isDirectNeighborFrame(facing, currentLocation, otherLocation)) {
+                    open.add(other);
+                }
             }
         }
 
+        for (ItemFrame frame : toRemove) {
+            frame.remove();
+            removed++;
+        }
+
         return removed;
+    }
+
+    private boolean isSameFramePlane(BlockFace facing, Location start, Location other) {
+        if (facing == BlockFace.NORTH || facing == BlockFace.SOUTH) {
+            return start.getBlockZ() == other.getBlockZ();
+        }
+
+        if (facing == BlockFace.EAST || facing == BlockFace.WEST) {
+            return start.getBlockX() == other.getBlockX();
+        }
+
+        return false;
+    }
+
+    private boolean isDirectNeighborFrame(BlockFace facing, Location a, Location b) {
+        int dx = Math.abs(a.getBlockX() - b.getBlockX());
+        int dy = Math.abs(a.getBlockY() - b.getBlockY());
+        int dz = Math.abs(a.getBlockZ() - b.getBlockZ());
+
+        if (facing == BlockFace.NORTH || facing == BlockFace.SOUTH) {
+            return dz == 0 && (
+                    (dx == 1 && dy == 0) ||
+                            (dx == 0 && dy == 1)
+            );
+        }
+
+        if (facing == BlockFace.EAST || facing == BlockFace.WEST) {
+            return dx == 0 && (
+                    (dz == 1 && dy == 0) ||
+                            (dz == 0 && dy == 1)
+            );
+        }
+
+        return false;
     }
 
     private boolean handleWarnCommand(CommandSender sender, String[] args) {
