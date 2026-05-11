@@ -76,7 +76,12 @@ public class DepartureDisplay extends MapDisplay {
                     .getScheduleManager()
                     .getNextDepartures(station, railGroup, 1);
 
-            drawPlatformDisplay(width, height, departures, warnings);
+            List<Departure> stationDepartures = AbfahrtstafelPlugin
+                    .getInstance()
+                    .getScheduleManager()
+                    .getNextDeparturesForStation(station, 3);
+
+            drawPlatformDisplay(width, height, station, railGroup, departures, stationDepartures, warnings);
         } else {
             List<Departure> departures = AbfahrtstafelPlugin
                     .getInstance()
@@ -230,7 +235,10 @@ public class DepartureDisplay extends MapDisplay {
     }
 
     private void drawPlatformDisplay(int width, int height,
+                                     String station,
+                                     String railGroup,
                                      List<Departure> departures,
+                                     List<Departure> stationDepartures,
                                      List<WarnMessage> warnings) {
 
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -245,9 +253,68 @@ public class DepartureDisplay extends MapDisplay {
         int x = 10;
 
         if (departures.isEmpty()) {
+            String currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+
             g.setColor(Color.WHITE);
+
             g.setFont(new Font("Arial", Font.PLAIN, 18));
-            g.drawString("Keine Abfahrt", x, 36);
+            g.drawString("Keine Abfahrt", x, 30);
+
+            int timeWidth = g.getFontMetrics().stringWidth(currentTime);
+            g.drawString(currentTime, width - timeWidth - 10, 30);
+
+            g.setFont(new Font("Arial", Font.PLAIN, 16));
+            g.drawString(station + "  Gl. " + railGroup, x, 58);
+
+            if (!stationDepartures.isEmpty()) {
+                g.drawLine(x, 72, width - 10, 72);
+
+                g.setFont(new Font("Arial", Font.PLAIN, 14));
+
+                int y = 92;
+
+                for (Departure stationDeparture : stationDepartures) {
+                    if (y > height - 8) {
+                        break;
+                    }
+
+                    String timeText = stationDeparture.getTime();
+                    String destinationText = stationDeparture.getDestination();
+                    String platformText = stationDeparture.getPlatform();
+
+                    // Spalten
+                    int xTime = x;
+                    int xPlatform;
+                    int platformWidth = g.getFontMetrics().stringWidth(platformText);
+
+                    xPlatform = width - platformWidth - 10;
+
+                    // Zeit zeichnen
+                    g.drawString(timeText, xTime, y);
+
+                    // Ziel als Lauftext
+                    int departureTimeWidth = g.getFontMetrics().stringWidth(timeText);
+                    int xDestination = xTime + departureTimeWidth + 8;
+                    int destinationWidth = xPlatform - xDestination - 8;
+
+                    if (destinationWidth > 10) {
+                        drawScrollingTextIfNeeded(
+                                g,
+                                destinationText,
+                                xDestination,
+                                y,
+                                destinationWidth,
+                                14
+                        );
+                    }
+
+                    // Gleis rechtsbündig
+                    g.drawString(platformText, xPlatform, y);
+
+                    y += 18;
+                }
+            }
+
             g.dispose();
 
             getLayer().draw(MapTexture.fromImage(image), 0, 0);
@@ -315,8 +382,10 @@ public class DepartureDisplay extends MapDisplay {
         if (departure.getDelayMinutes() > 0) {
             String delayText = "+" + departure.getDelayMinutes();
 
+            int delayWidth = g.getFontMetrics().stringWidth(delayText) + 8;
+
             g.setColor(Color.WHITE);
-            g.fillRect(afterTimeX, 32, 34, 26);
+            g.fillRect(afterTimeX, 32, delayWidth, 26);
 
             g.setColor(new Color(43, 45, 141));
             g.setFont(new Font("Arial", Font.PLAIN, 24));

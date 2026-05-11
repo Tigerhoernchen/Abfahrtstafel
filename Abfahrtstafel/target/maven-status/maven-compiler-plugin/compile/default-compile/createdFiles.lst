@@ -1,6 +1,8 @@
 de\tiger\abfahrtstafel\ScheduleManager$ProcessCandidate.class
 de\tiger\abfahrtstafel\Departure.class
 de\tiger\abfahrtstafel\SignActionAbfahrt.class
+de\tiger\abfahrtstafel\AbfahrtstafelPlugin$1.class
+de\tiger\abfahrtstafel\SelectionManager.class
 de\tiger\abfahrtstafel\WarningManager.class
 de\tiger\abfahrtstafel\ScheduleManager$DepartureCandidate.class
 de\tiger\abfahrtstafel\OrderedRailGroup.class
