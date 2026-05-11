@@ -7,5 +7,6 @@
 - Anzeigevorlagen nach DB Modernisierungsprogramm
 - place: Überlappen verhindern.
 - Gleisanzeige: "Keine Abfahrt" Warnmeldung hinzufügen.
-- Warn: Für Linie definieren
+- Gleisanzeige: Lauftext bei zu langer Zielanzeige.
+- Warn: Für Linie definieren.
 ```
