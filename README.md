@@ -40,9 +40,7 @@ Ich versuche die .jar dazu immer aktuell zu halten. [Diese findest du hier](Abfa
 
 # Befehle
 
-## Karten erstellen
-> [!NOTE]
-> Aktuell wird nur eine Karte/Display in die Hand gedrückt. Diese in Rahmen packen und man hat seine Anzeigen. <br>
+## Display erstellen (manuell)
 ### Große Bahnhofsanzeige (größe Variabel)
 ```
 /abfahrtstafel give station <Stationsname>
@@ -50,6 +48,18 @@ Ich versuche die .jar dazu immer aktuell zu halten. [Diese findest du hier](Abfa
 ### Kleine Gleisanzeige (1x2 Blöcke empfohlen)
 ```
 /abfahrtstafel give platform <Gleis> <Stationsname>
+```
+## Display erstellen (automatisch)
+### Bereich auswählen
+```
+/abfahrtstafel pos1
+/abfahrtstafel pos2
+```
+### Display setzen
+Die Displaygröße ist nicht begrenzt. Für den Bahnsteig wird eine Displaygröße von 1x2 Blöcken empfohlen.
+```
+/abfahrtstafel place station <normal/glow> <Bahnhof>
+/abfahrtstafel place platform <normal/glow> <Gleis> <Bahnhof>
 ```
 ## Trigger einer Abfahrt
 ```
