@@ -61,6 +61,11 @@ Die Displaygröße ist nicht begrenzt. Für den Bahnsteig wird eine Displaygrö�
 /abfahrtstafel place station <normal/glow> <Bahnhof>
 /abfahrtstafel place platform <normal/glow> <Gleis> <Bahnhof>
 ```
+## Display entfernen
+### Das Display ansehen
+```
+/abfahrtstafel remove
+```
 ## Trigger einer Abfahrt
 ```
 /abfahrtstafel trigger <Station>:<Gleis>
