@@ -1,5 +1,5 @@
 ```
-- Ankunftserkennung
+- Ankunftserkennung per Trigger-Schild
 - Ankunftserkennung: Sound abspielen
 - Ankunftserkennung: Anzeige umstellen/besser definieren
 - Automatisierte Abfahrt
@@ -7,4 +7,5 @@
 - Anzeigevorlagen nach DB Modernisierungsprogramm
 - place: Überlappen verhindern.
 - Gleisanzeige: "Keine Abfahrt" Warnmeldung hinzufügen.
+- Warn: Für Linie definieren
 ```
