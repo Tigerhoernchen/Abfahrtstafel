@@ -62,7 +62,7 @@ Die Displaygröße ist nicht begrenzt. Für den Bahnsteig wird eine Displaygrö�
 /abfahrtstafel place platform <normal/glow> <Gleis> <Bahnhof>
 ```
 ## Display entfernen
-### Das Display ansehen
+Das zu entfernende Display ansehen und den Befehl nutzen.
 ```
 /abfahrtstafel remove
 ```
