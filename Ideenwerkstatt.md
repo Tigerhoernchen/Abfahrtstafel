@@ -6,9 +6,10 @@
 - Automatisierte Abfahrt
 - Automatisierte Abfahrt: Zug genauer definieren. (Tag Linie + Abfahrtszeit)
 - Anzeigevorlagen nach DB Modernisierungsprogramm (eigener Befehl zum erstellen dieser)
+- Wiki mal ordentlich schreiben
 ```
 
-### Fix in Zukunft
+### Fix für die Zukunft
 ```
 - Aktuell nichts bekannt.
 ```
