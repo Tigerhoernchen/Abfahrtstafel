@@ -49,7 +49,13 @@ public class DepartureDisplay extends MapDisplay {
             warningScroll++;
         }
 
-        if (ticks >= 2) {
+        int updateTicks = AbfahrtstafelPlugin.getInstance().getDisplayUpdateTicks();
+
+        if (updateTicks < 1) {
+            updateTicks = 10;
+        }
+
+        if (ticks >= updateTicks) {
             ticks = 0;
             drawDisplay();
         }

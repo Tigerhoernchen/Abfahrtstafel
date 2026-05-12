@@ -98,6 +98,10 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return getConfig().getInt("stationDisplayMaxEntries", 12);
     }
 
+    public int getDisplayUpdateTicks() {
+        return getConfig().getInt("displayUpdateTicks", 10);
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("abfahrtstafel")) {
