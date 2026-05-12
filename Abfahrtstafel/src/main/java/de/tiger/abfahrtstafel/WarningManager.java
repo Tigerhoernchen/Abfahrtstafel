@@ -48,10 +48,15 @@ public class WarningManager {
     }
 
     public List<WarnMessage> getActiveWarnings(String station, String railGroup) {
+        return getActiveWarnings(station, railGroup, null);
+    }
+
+    public List<WarnMessage> getActiveWarnings(String station, String railGroup, String line) {
         List<WarnMessage> result = new ArrayList<>();
 
         String stationGroup = station;
         String platformGroup = station + ":" + railGroup;
+        String lineGroup = line == null ? null : "lines:" + line;
 
         for (WarnMessage warning : warnings) {
             if (!warning.isActive()) {
@@ -61,7 +66,8 @@ public class WarningManager {
             for (String group : warning.getGroups()) {
                 if (group.equalsIgnoreCase("global")
                         || group.equalsIgnoreCase(stationGroup)
-                        || group.equalsIgnoreCase(platformGroup)) {
+                        || group.equalsIgnoreCase(platformGroup)
+                        || (lineGroup != null && group.equalsIgnoreCase(lineGroup))) {
                     result.add(warning);
                     break;
                 }
@@ -101,7 +107,6 @@ public class WarningManager {
             return false;
         }
 
-        // Komplette Liste wieder zurückschreiben
         config.set("warnMessages", rawWarnings);
 
         try {

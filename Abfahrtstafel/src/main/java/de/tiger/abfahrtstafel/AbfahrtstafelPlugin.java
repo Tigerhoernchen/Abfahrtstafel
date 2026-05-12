@@ -392,6 +392,12 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
         BlockFace facing = getOppositeCardinalFacing(player);
 
+        // Bereits vorhandene ItemFrames in dieser Fläche -> Platzieren abbrechen
+        if (hasAnyItemFrameInArea(world, minX, maxX, minY, maxY, minZ, maxZ)) {
+            player.sendMessage(ChatColor.RED + "In der ausgewählten Fläche befindet sich bereits ein Display. Platzieren abgebrochen.");
+            return 0;
+        }
+
         int placed = 0;
         int skipped = 0;
 
@@ -399,12 +405,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             for (int x = minX; x <= maxX; x++) {
                 for (int z = minZ; z <= maxZ; z++) {
                     Location location = new Location(world, x + 0.5, y + 0.5, z + 0.5);
-
-                    // Bereits vorhandene ItemFrames an dieser Position überspringen
-                    if (hasItemFrameAt(location)) {
-                        skipped++;
-                        continue;
-                    }
 
                     // Nur wenn dort noch kein ItemFrame hängt, störende Blöcke entfernen
                     Block block = world.getBlockAt(x, y, z);
@@ -436,6 +436,24 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         return placed;
+    }
+
+    private boolean hasAnyItemFrameInArea(World world, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+        for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class)) {
+            Location location = frame.getLocation();
+
+            int x = location.getBlockX();
+            int y = location.getBlockY();
+            int z = location.getBlockZ();
+
+            if (x >= minX && x <= maxX
+                    && y >= minY && y <= maxY
+                    && z >= minZ && z <= maxZ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private BlockFace getOppositeCardinalFacing(Player player) {

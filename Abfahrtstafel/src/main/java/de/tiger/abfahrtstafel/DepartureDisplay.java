@@ -145,8 +145,6 @@ public class DepartureDisplay extends MapDisplay {
 
         g.drawLine(4, 54, width - 4, 54);
 
-        String warningText = buildWarningText(warnings);
-
         int y = 74;
         int rowHeight = 20;
 
@@ -174,14 +172,21 @@ public class DepartureDisplay extends MapDisplay {
             g.drawString(departure.getLine(), xLine, y);
 
             drawScrollingTextIfNeeded(g, departure.getVia(), xVia, y, viaWidth, 13);
-            drawScrollingTextIfNeeded(g, departure.getDestination(), xDestination, y, destinationWidth, 13);
+            drawPingPongScrollingText(g, departure.getDestination(), xDestination, y, destinationWidth, 13);
 
             g.drawString(departure.getPlatform(), xPlatform, y);
 
-            if (!warningText.isEmpty() && warningWidth > 12) {
+            List<WarnMessage> rowWarnings = AbfahrtstafelPlugin
+                    .getInstance()
+                    .getWarningManager()
+                    .getActiveWarnings(station, departure.getPlatform(), departure.getLine());
+
+            String rowWarningText = buildWarningText(rowWarnings);
+
+            if (!rowWarningText.isEmpty() && warningWidth > 12) {
                 g.setColor(new Color(255, 200, 0));
                 g.setFont(new Font("Arial", Font.PLAIN, 13));
-                drawScrollingTextIfNeeded(g, warningText, xWarning, y, warningWidth, 13);
+                drawScrollingTextIfNeeded(g, rowWarningText, xWarning, y, warningWidth, 13);
             }
 
             y += rowHeight;
@@ -265,6 +270,48 @@ public class DepartureDisplay extends MapDisplay {
 
             g.setFont(new Font("Arial", Font.PLAIN, 16));
             g.drawString(station + "  Gl. " + railGroup, x, 58);
+            if (!warnings.isEmpty()) {
+                StringBuilder warningBuilder = new StringBuilder();
+
+                for (int i = 0; i < warnings.size(); i++) {
+                    if (i > 0) {
+                        warningBuilder.append("  ***  ");
+                    }
+
+                    warningBuilder.append(warnings.get(i).getMessage());
+                }
+
+                // Textbreite mit derselben Schrift berechnen wie beim Zeichnen
+                g.setFont(new Font("Arial", Font.PLAIN, 16));
+
+                String stationRailText = station + "  Gl. " + railGroup;
+                int stationRailWidth = g.getFontMetrics().stringWidth(stationRailText);
+
+                // Danach kleinere Schrift für Warnung verwenden
+                g.setFont(new Font("Arial", Font.PLAIN, 13));
+
+                int warningX = x + stationRailWidth + 10;
+                int warningY = 58;
+                int availableWidth = width - warningX - 10;
+
+                if (availableWidth > 20) {
+                    g.setColor(Color.WHITE);
+                    g.fillRect(warningX - 2, 43, availableWidth + 4, 18);
+
+                    g.setColor(new Color(43, 45, 141));
+
+                    drawScrollingTextIfNeeded(
+                            g,
+                            warningBuilder.toString(),
+                            warningX,
+                            warningY,
+                            availableWidth,
+                            13
+                    );
+                }
+
+                g.setColor(Color.WHITE);
+            }
 
             if (!stationDepartures.isEmpty()) {
                 g.drawLine(x, 72, width - 10, 72);
@@ -298,7 +345,7 @@ public class DepartureDisplay extends MapDisplay {
                     int destinationWidth = xPlatform - xDestination - 8;
 
                     if (destinationWidth > 10) {
-                        drawScrollingTextIfNeeded(
+                        drawPingPongScrollingText(
                                 g,
                                 destinationText,
                                 xDestination,
@@ -322,6 +369,15 @@ public class DepartureDisplay extends MapDisplay {
         }
 
         Departure departure = departures.get(0);
+
+        warnings = AbfahrtstafelPlugin
+                .getInstance()
+                .getWarningManager()
+                .getActiveWarnings(
+                        station,
+                        departure.getPlatform(),
+                        departure.getLine()
+                );
 
         // Linie
         g.setColor(Color.WHITE);
@@ -392,10 +448,21 @@ public class DepartureDisplay extends MapDisplay {
             g.drawString(delayText, afterTimeX + 3, 55);
         }
 
-        // Zielbahnhof unter der Zeit
+        // Zielbahnhof unter der Zeit (mit Pendel-Lauftext)
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.PLAIN, 22));
-        g.drawString(departure.getDestination(), x, 82);
+
+        int destinationY = 82;
+        int destinationWidth = width - 20;
+
+        drawPingPongScrollingText(
+                g,
+                departure.getDestination(),
+                x,
+                destinationY,
+                destinationWidth,
+                22
+        );
 
         // Zwischenhalte unten
         if (!departure.getVia().isEmpty()) {
@@ -409,6 +476,79 @@ public class DepartureDisplay extends MapDisplay {
         g.dispose();
 
         getLayer().draw(MapTexture.fromImage(image), 0, 0);
+    }
+
+    private void drawPingPongScrollingText(Graphics2D g,
+                                           String text,
+                                           int x,
+                                           int y,
+                                           int availableWidth,
+                                           int fontHeight) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+
+        int textWidth = g.getFontMetrics().stringWidth(text);
+
+        // Text passt komplett hinein
+        if (textWidth <= availableWidth) {
+            g.drawString(text, x, y);
+            return;
+        }
+
+        int overflow = textWidth - availableWidth;
+
+        // Animation:
+        // 1. Nach links scrollen
+        // 2. Pause am Ende
+        // 3. Schneller zurück scrollen
+        // 4. Pause am Anfang
+        //
+        // Geschwindigkeit:
+        // - Hinweg: 1 Pixel pro Tick
+        // - Rückweg: 3 Pixel pro Tick
+
+        int forwardTicks = overflow;
+        int pauseEndTicks = 30;
+        int backwardTicks = Math.max(1, overflow / 3);
+        int pauseStartTicks = 20;
+
+        int cycleLength =
+                forwardTicks +
+                        pauseEndTicks +
+                        backwardTicks +
+                        pauseStartTicks;
+
+        int t = warningScroll % cycleLength;
+
+        int offset;
+
+        // Phase 1: Langsam nach links
+        if (t < forwardTicks) {
+            offset = t;
+        }
+        // Phase 2: Pause am Ende
+        else if (t < forwardTicks + pauseEndTicks) {
+            offset = overflow;
+        }
+        // Phase 3: Schneller zurück
+        else if (t < forwardTicks + pauseEndTicks + backwardTicks) {
+            int backT = t - forwardTicks - pauseEndTicks;
+
+            double progress = (double) backT / (double) backwardTicks;
+            offset = overflow - (int) Math.round(progress * overflow);
+        }
+        // Phase 4: Pause am Anfang
+        else {
+            offset = 0;
+        }
+
+        Shape oldClip = g.getClip();
+        g.setClip(x, y - fontHeight, availableWidth, fontHeight + 8);
+
+        g.drawString(text, x - offset, y);
+
+        g.setClip(oldClip);
     }
 
     private String formatTimeWithDelay(Departure departure) {

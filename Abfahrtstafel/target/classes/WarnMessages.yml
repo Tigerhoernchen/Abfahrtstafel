@@ -1,10 +1,15 @@
 warnMessages:
   - id: 1
-    message: Test Warnmeldung für Station 1 Gleis G1
+    message: Test Warnmeldung für "Stuttgart Hbf" Gleis "12" und Gleis "16"
     active: false
-    groups: Station 1:G1
+    groups: Stuttgart Hbf:12,Stuttgart Hbf:16
 
   - id: 2
     message: Globale Testwarnung
     active: false
     groups: global
+
+  - id: 3
+    message: Warnung einzelner Linien
+    active: false
+    groups: lines:ICE1
