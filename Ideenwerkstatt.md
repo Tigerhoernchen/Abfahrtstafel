@@ -11,5 +11,5 @@
 
 ### Fix für die Zukunft
 ```
-- Aktuell nichts bekannt.
+- Toggle Debug Mode Funktion. Aktuell wird die Konsole wegen der Trigger noch gut gefüllt
 ```
