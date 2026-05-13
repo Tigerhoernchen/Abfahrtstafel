@@ -1,0 +1,31 @@
+layouts:
+  platform-small:
+    displayType: platform
+    widthBlocks: 1
+    heightBlocks: 2
+    background: "#2B2D8D"
+    elements:
+      - type: text
+        value: "{line}"
+        x: 10
+        y: 22
+        width: 40
+        fontSize: 16
+        color: "#FFFFFF"
+
+      - type: text
+        value: "{time}"
+        x: 10
+        y: 55
+        width: 80
+        fontSize: 26
+        color: "#FFFFFF"
+
+      - type: text
+        value: "{destination}"
+        x: 10
+        y: 82
+        width: fill
+        fontSize: 22
+        color: "#FFFFFF"
+        scroll: pingpong

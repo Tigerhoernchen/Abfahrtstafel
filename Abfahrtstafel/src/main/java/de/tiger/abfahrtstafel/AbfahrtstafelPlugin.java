@@ -28,6 +28,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     private WarningManager warningManager;
     private RuntimeStateManager runtimeStateManager;
     private SelectionManager selectionManager;
+    private DisplayLayoutManager displayLayoutManager;
 
     private final SignActionAbfahrt signActionAbfahrt = new SignActionAbfahrt();
 
@@ -46,14 +47,17 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         runtimeStateManager = new RuntimeStateManager();
         selectionManager = new SelectionManager();
 
+        displayLayoutManager = new DisplayLayoutManager(this);
+        displayLayoutManager.load();
+
         scheduleManager = new ScheduleManager(this);
         scheduleManager.load();
 
         warningManager = new WarningManager(this);
         warningManager.load();
 
-        getLogger().info("Abfahrtstafel Plugin gestartet!");
-        getLogger().info("BKCommonLib und TrainCarts wurden gefunden!");
+        getLogger().info("[Abfahrtstafel] Plugin gestartet!");
+        getLogger().info("[Abfahrtstafel] BKCommonLib und TrainCarts wurden gefunden!");
     }
 
     @Override
@@ -76,6 +80,10 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
     public RuntimeStateManager getRuntimeStateManager() {
         return runtimeStateManager;
+    }
+
+    public DisplayLayoutManager getDisplayLayoutManager() {
+        return displayLayoutManager;
     }
 
     public boolean isDebugSignActions() {
@@ -106,6 +114,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return getConfig().getInt("displayUpdateTicks", 10);
     }
 
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("abfahrtstafel")) {
@@ -120,6 +129,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             reloadConfig();
             scheduleManager.load();
             warningManager.load();
+            displayLayoutManager.load();
             sender.sendMessage(ChatColor.GREEN + "Dateien wurden neu geladen.");
             return true;
         }
@@ -423,6 +433,11 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         MapDisplayProperties properties = MapDisplayProperties.createNew(DepartureDisplay.class);
         properties.set("displayType", displayType);
         properties.set("station", station);
+        if (displayType.equalsIgnoreCase("station")) {
+            properties.set("layout", "station-large");
+        } else {
+            properties.set("layout", "platform-small");
+        }
 
         if (railGroup != null) {
             properties.set("railGroup", railGroup);
@@ -471,41 +486,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         int placed = 0;
-        int skipped = 0;
-
-        for (int y = maxY; y >= minY; y--) {
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    Location location = new Location(world, x + 0.5, y + 0.5, z + 0.5);
-
-                    // Nur wenn dort noch kein ItemFrame hängt, störende Blöcke entfernen
-                    Block block = world.getBlockAt(x, y, z);
-
-                    if (!block.getType().isAir()) {
-                        block.setType(Material.AIR);
-                    }
-
-                    ItemFrame frame;
-
-                    if (glow) {
-                        frame = (GlowItemFrame) world.spawnEntity(location, EntityType.GLOW_ITEM_FRAME);
-                    } else {
-                        frame = (ItemFrame) world.spawnEntity(location, EntityType.ITEM_FRAME);
-                    }
-
-                    frame.setFacingDirection(facing, true);
-                    frame.setItem(item.clone(), false);
-                    frame.setFixed(true);
-                    frame.setVisible(true);
-
-                    placed++;
-                }
-            }
-        }
-
-        if (skipped > 0) {
-            player.sendMessage(ChatColor.YELLOW + "Übersprungen wegen vorhandener Rahmen: " + skipped);
-        }
 
         return placed;
     }
