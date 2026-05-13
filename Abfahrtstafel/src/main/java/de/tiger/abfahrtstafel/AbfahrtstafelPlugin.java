@@ -78,8 +78,12 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return runtimeStateManager;
     }
 
-    public int getWarningScrollSpeedTicks() {
-        return getConfig().getInt("warningScrollSpeedTicks", 5);
+    public boolean isDebugSignActions() {
+        return getConfig().getBoolean("debugSignActions", false);
+    }
+
+    public int getTextScrollSpeedTicks() {
+        return getConfig().getInt("textScrollSpeedTicks", 1);
     }
 
     public int getDepartureTimeoutMinutes() {
@@ -345,6 +349,70 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 player.sendMessage(ChatColor.GREEN + "Kleine Gleisanzeige erhalten für: " + station + ":" + railGroup);
                 return true;
             }
+        }
+
+        if (args.length >= 2 && args[0].equalsIgnoreCase("debug")) {
+            if (!checkPermission(sender, "abfahrtstafel.admin")) {
+                return true;
+            }
+
+            String debugTarget = args[1].toLowerCase();
+
+            if (debugTarget.equals("signactions")) {
+                if (args.length != 3) {
+                    sender.sendMessage(ChatColor.YELLOW + "Nutzung: /abfahrtstafel debug signactions <true|false>");
+                    return true;
+                }
+
+                boolean value = Boolean.parseBoolean(args[2]);
+                getConfig().set("debugSignActions", value);
+                saveConfig();
+
+                sender.sendMessage(ChatColor.GREEN
+                        + "Debug für SignActions "
+                        + (value ? "aktiviert" : "deaktiviert") + ".");
+                return true;
+            }
+
+            if (debugTarget.equals("trigger")) {
+                if (args.length < 3) {
+                    sender.sendMessage(ChatColor.YELLOW + "Nutzung: /abfahrtstafel debug trigger <Station>:<Gleis>");
+                    return true;
+                }
+
+                String stationAndRail = joinArgs(args, 2);
+
+                if (!stationAndRail.contains(":")) {
+                    sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel debug trigger <Station>:<Gleis>");
+                    return true;
+                }
+
+                String[] parts = stationAndRail.split(":", 2);
+                String station = parts[0].trim();
+                String railGroup = parts[1].trim();
+
+                boolean success = scheduleManager.processNextDeparture(station, railGroup);
+
+                if (success) {
+                    sender.sendMessage(ChatColor.GREEN + "Debug-Trigger ausgeführt für "
+                            + station + ":" + railGroup + ".");
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Debug-Trigger: Keine passende Abfahrt gefunden für "
+                            + station + ":" + railGroup + ".");
+                }
+
+                return true;
+            }
+
+            if (debugTarget.equals("clearstate")) {
+                runtimeStateManager.clear();
+                sender.sendMessage(ChatColor.GREEN + "Debug: Runtime-State wurde geleert.");
+                return true;
+            }
+
+            sender.sendMessage(ChatColor.YELLOW
+                    + "Nutzung: /abfahrtstafel debug <signactions|trigger|clearstate>");
+            return true;
         }
 
         sendHelp(sender);
@@ -679,8 +747,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel pos1");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel pos2");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel remove");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel trigger <Station>:<Gleis>");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel clearstate");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug <signactions|clearstate|trigger>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel reload");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn list");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn enable <id>");
@@ -720,14 +787,13 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         if (args.length == 1) {
+            completions.add("debug");
             completions.add("give");
             completions.add("place");
             completions.add("pos1");
             completions.add("pos2");
             completions.add("remove");
             completions.add("reload");
-            completions.add("clearstate");
-            completions.add("trigger");
             completions.add("warn");
             return filterCompletions(completions, args[0]);
         }
@@ -746,8 +812,10 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return filterCompletions(completions, args[1]);
             }
 
-            if (args[0].equalsIgnoreCase("trigger")) {
-                completions.addAll(buildStationRailCompletions());
+            if (args[0].equalsIgnoreCase("debug")) {
+                completions.add("signactions");
+                completions.add("trigger");
+                completions.add("clearstate");
                 return filterCompletions(completions, args[1]);
             }
         }
@@ -818,6 +886,21 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 completions.add(String.valueOf(warning.getId()));
             }
 
+            return filterCompletions(completions, args[2]);
+        }
+
+        if (args.length == 3
+                && args[0].equalsIgnoreCase("debug")
+                && args[1].equalsIgnoreCase("signactions")) {
+            completions.add("true");
+            completions.add("false");
+            return filterCompletions(completions, args[2]);
+        }
+
+        if (args.length == 3
+                && args[0].equalsIgnoreCase("debug")
+                && args[1].equalsIgnoreCase("trigger")) {
+            completions.addAll(buildStationRailCompletions());
             return filterCompletions(completions, args[2]);
         }
 

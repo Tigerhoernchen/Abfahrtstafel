@@ -25,7 +25,7 @@ public class DepartureDisplay extends MapDisplay {
     private static final byte WARNING = MapColorPalette.getColor(255, 180, 0);
 
     private int ticks = 0;
-    private int warningScroll = 0;
+    private int textScroll = 0;
 
     @Override
     public void onAttached() {
@@ -39,14 +39,14 @@ public class DepartureDisplay extends MapDisplay {
 
         int scrollSpeed = AbfahrtstafelPlugin
                 .getInstance()
-                .getWarningScrollSpeedTicks();
+                .getTextScrollSpeedTicks();
 
         if (scrollSpeed < 1) {
             scrollSpeed = 1;
         }
 
         if (ticks % scrollSpeed == 0) {
-            warningScroll++;
+            textScroll++;
         }
 
         int updateTicks = AbfahrtstafelPlugin.getInstance().getDisplayUpdateTicks();
@@ -525,7 +525,7 @@ public class DepartureDisplay extends MapDisplay {
                         backwardTicks +
                         pauseStartTicks;
 
-        int t = warningScroll % cycleLength;
+        int t = textScroll % cycleLength;
 
         int offset;
 
@@ -597,7 +597,7 @@ public class DepartureDisplay extends MapDisplay {
         }
 
         int totalScrollWidth = textWidth + availableWidth;
-        int offset = warningScroll % totalScrollWidth;
+        int offset = textScroll % totalScrollWidth;
         int x = availableWidth - offset + 6;
 
         drawText(x, height - 10, warningText, WARNING);
@@ -617,7 +617,7 @@ public class DepartureDisplay extends MapDisplay {
         String repeatedText = text + "  ***  ";
         int repeatedWidth = g.getFontMetrics().stringWidth(repeatedText);
 
-        int offset = warningScroll % repeatedWidth;
+        int offset = textScroll % repeatedWidth;
         int startX = x - offset;
 
         for (int drawX = startX; drawX < x + availableWidth; drawX += repeatedWidth) {

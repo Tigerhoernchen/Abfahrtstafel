@@ -1,11 +1,18 @@
 # Max delay in minutes before changing to the next entry. Default 5
 departureTimeoutMinutes: 5
+
 # Update the Displays every x ticks. 10 = 2x per second
 displayUpdateTicks: 10
+
 # Warning scrollspeed. Default: 1 tick
-warningScrollSpeedTicks: 1
+textScrollSpeedTicks: 1
+
 # Lookahead for entries in minutes. -1 for unlimited
 stationLookAheadMinutes: 120
 platformLookAheadMinutes: -1
+
 # Set the maximum of entries for the station display
 stationDisplayMaxEntries: 12
+
+# If true = sends console output if a train triggers a sign
+debugSignActions: false

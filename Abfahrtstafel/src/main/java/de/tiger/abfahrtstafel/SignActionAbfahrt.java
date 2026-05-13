@@ -38,14 +38,18 @@ public class SignActionAbfahrt extends SignAction {
                 .getScheduleManager()
                 .processNextDeparture(station, railGroup);
 
-        if (success) {
-            AbfahrtstafelPlugin.getInstance().getLogger().info(
-                    "TrainCarts-Trigger: Abfahrt abgearbeitet fuer " + station + ":" + railGroup
-            );
-        } else {
-            AbfahrtstafelPlugin.getInstance().getLogger().info(
-                    "TrainCarts-Trigger: Keine passende Abfahrt gefunden fuer " + station + ":" + railGroup
-            );
+        if (AbfahrtstafelPlugin.getInstance().isDebugSignActions()) {
+            if (success) {
+                AbfahrtstafelPlugin.getInstance().getLogger().info(
+                        "TrainCarts-Trigger: Abfahrt abgearbeitet für "
+                                + station + ":" + railGroup
+                );
+            } else {
+                AbfahrtstafelPlugin.getInstance().getLogger().info(
+                        "TrainCarts-Trigger: Keine passende Abfahrt gefunden für "
+                                + station + ":" + railGroup
+                );
+            }
         }
     }
 
