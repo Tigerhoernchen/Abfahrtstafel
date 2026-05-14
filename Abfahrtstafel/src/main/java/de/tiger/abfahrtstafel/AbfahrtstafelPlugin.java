@@ -15,7 +15,6 @@ import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.Material;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +26,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     private ScheduleManager scheduleManager;
     private WarningManager warningManager;
     private RuntimeStateManager runtimeStateManager;
-    private SelectionManager selectionManager;
     private DisplayLayoutManager displayLayoutManager;
 
     private final SignActionAbfahrt signActionAbfahrt = new SignActionAbfahrt();
@@ -45,7 +43,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         reloadConfig();
 
         runtimeStateManager = new RuntimeStateManager();
-        selectionManager = new SelectionManager();
 
         displayLayoutManager = new DisplayLayoutManager(this);
         displayLayoutManager.load();
@@ -114,7 +111,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return getConfig().getInt("displayUpdateTicks", 10);
     }
 
-
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("abfahrtstafel")) {
@@ -144,7 +140,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             return true;
         }
 
-        if (args.length == 1 && args[0].equalsIgnoreCase("pos1")) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("place")) {
             if (!checkPermission(sender, "abfahrtstafel.admin")) {
                 return true;
             }
@@ -154,113 +150,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return true;
             }
 
-            Block block = player.getTargetBlockExact(10);
-
-            if (block == null) {
-                sender.sendMessage(ChatColor.RED + "Bitte schaue einen Block an.");
-                return true;
-            }
-
-            Location frameLocation = block.getLocation()
-                    .add(getOppositeCardinalFacing(player).getModX(),
-                            getOppositeCardinalFacing(player).getModY(),
-                            getOppositeCardinalFacing(player).getModZ());
-
-            selectionManager.setPos1(player, frameLocation);
-            sender.sendMessage(ChatColor.GREEN + "Position 1 gesetzt: "
-                    + formatLocation(frameLocation));
-            return true;
-        }
-
-        if (args.length == 1 && args[0].equalsIgnoreCase("pos2")) {
-            if (!checkPermission(sender, "abfahrtstafel.admin")) {
-                return true;
-            }
-
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage("Dieser Befehl kann nur im Spiel benutzt werden.");
-                return true;
-            }
-
-            Block block = player.getTargetBlockExact(10);
-
-            if (block == null) {
-                sender.sendMessage(ChatColor.RED + "Bitte schaue einen Block an.");
-                return true;
-            }
-
-            Location frameLocation = block.getLocation()
-                    .add(getOppositeCardinalFacing(player).getModX(),
-                            getOppositeCardinalFacing(player).getModY(),
-                            getOppositeCardinalFacing(player).getModZ());
-
-            selectionManager.setPos2(player, frameLocation);
-            sender.sendMessage(ChatColor.GREEN + "Position 2 gesetzt: "
-                    + formatLocation(frameLocation));
-            return true;
-        }
-
-        if (args.length >= 4 && args[0].equalsIgnoreCase("place")) {
-            if (!checkPermission(sender, "abfahrtstafel.admin")) {
-                return true;
-            }
-
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage("Dieser Befehl kann nur im Spiel benutzt werden.");
-                return true;
-            }
-
-            if (!selectionManager.hasSelection(player)) {
-                sender.sendMessage(ChatColor.RED + "Bitte zuerst /abfahrtstafel pos1 und /abfahrtstafel pos2 setzen.");
-                return true;
-            }
-
-            String displayType = args[1].toLowerCase();
-            String frameType = args[2].toLowerCase();
-
-            boolean glow;
-
-            if (frameType.equals("normal")) {
-                glow = false;
-            } else if (frameType.equals("glow")) {
-                glow = true;
-            } else {
-                sender.sendMessage(ChatColor.RED + "Rahmentyp muss normal oder glow sein.");
-                return true;
-            }
-
-            if (displayType.equals("station")) {
-                String station = joinArgs(args, 3);
-
-                ItemStack item = createDisplayItem("station", station, null);
-                int placed = placeFrames(player, item, glow);
-
-                sender.sendMessage(ChatColor.GREEN + "Bahnhofsanzeige platziert: "
-                        + station + " (" + placed + " Rahmen)");
-                return true;
-            }
-
-            if (displayType.equals("platform")) {
-                if (args.length < 5) {
-                    sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel place platform <normal|glow> <Gleis> <Stations Name>");
-                    return true;
-                }
-
-                String railGroup = args[3];
-                String station = joinArgs(args, 4);
-
-                ItemStack item = createDisplayItem("platform", station, railGroup);
-                int placed = placeFrames(player, item, glow);
-
-                sender.sendMessage(ChatColor.GREEN + "Gleisanzeige platziert: "
-                        + station + ":" + railGroup + " (" + placed + " Rahmen)");
-                return true;
-            }
-
-            sender.sendMessage(ChatColor.RED + "Nutzung:");
-            sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place station <normal|glow> <Stations Name>");
-            sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place platform <normal|glow> <Gleis> <Stations Name>");
-            return true;
+            return handlePlaceLayoutCommand(player, sender, args);
         }
 
         if (args.length == 1 && args[0].equalsIgnoreCase("remove")) {
@@ -320,45 +210,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             }
 
             return handleWarnCommand(sender, args);
-        }
-
-        if (args.length >= 3 && args[0].equalsIgnoreCase("give")) {
-            if (!checkPermission(sender, "abfahrtstafel.admin")) {
-                return true;
-            }
-
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage("Dieser Befehl kann nur im Spiel benutzt werden.");
-                return true;
-            }
-
-            String displayType = args[1].toLowerCase();
-
-            if (displayType.equals("station")) {
-                String station = joinArgs(args, 2);
-
-                ItemStack item = createDisplayItem("station", station, null);
-                player.getInventory().addItem(item);
-
-                player.sendMessage(ChatColor.GREEN + "Große Bahnhofsanzeige erhalten für Station: " + station);
-                return true;
-            }
-
-            if (displayType.equals("platform")) {
-                if (args.length < 4) {
-                    sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel give platform <Gleis> <Stations Name>");
-                    return true;
-                }
-
-                String railGroup = args[2];
-                String station = joinArgs(args, 3);
-
-                ItemStack item = createDisplayItem("platform", station, railGroup);
-                player.getInventory().addItem(item);
-
-                player.sendMessage(ChatColor.GREEN + "Kleine Gleisanzeige erhalten für: " + station + ":" + railGroup);
-                return true;
-            }
         }
 
         if (args.length >= 2 && args[0].equalsIgnoreCase("debug")) {
@@ -429,15 +280,86 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return true;
     }
 
-    private ItemStack createDisplayItem(String displayType, String station, String railGroup) {
+    private boolean handlePlaceLayoutCommand(Player player, CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel place <DisplayName> <normal|glow> <Station>");
+            sender.sendMessage(ChatColor.RED + "Oder: /abfahrtstafel place <DisplayName> <normal|glow> <Gleis> <Station>");
+            return true;
+        }
+
+        String layoutName = args[1];
+        String frameType = args[2].toLowerCase();
+
+        boolean glow;
+
+        if (frameType.equals("normal")) {
+            glow = false;
+        } else if (frameType.equals("glow")) {
+            glow = true;
+        } else {
+            sender.sendMessage(ChatColor.RED + "Rahmentyp muss normal oder glow sein.");
+            return true;
+        }
+
+        DisplayLayout layout = displayLayoutManager.getLayout(layoutName);
+
+        if (layout == null) {
+            sender.sendMessage(ChatColor.RED + "DisplayLayout nicht gefunden: " + layoutName);
+            return true;
+        }
+
+        String displayType = layout.getDisplayType();
+
+        String station;
+        String railGroup = null;
+
+        if (displayType.equalsIgnoreCase("platform")) {
+            if (args.length < 5) {
+                sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel place "
+                        + layoutName + " <normal|glow> <Gleis> <Station>");
+                return true;
+            }
+
+            railGroup = args[3];
+            station = joinArgs(args, 4);
+        } else if (displayType.equalsIgnoreCase("station")) {
+            if (args.length < 4) {
+                sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel place "
+                        + layoutName + " <normal|glow> <Station>");
+                return true;
+            }
+
+            station = joinArgs(args, 3);
+        } else {
+            sender.sendMessage(ChatColor.RED + "Unbekannter displayType im Layout: " + displayType);
+            return true;
+        }
+
+        ItemStack item = createDisplayItem(displayType, station, railGroup, layoutName);
+
+        int placed = placeLayoutFrames(player, item, glow, layout.getWidthBlocks(), layout.getHeightBlocks());
+
+        if (placed <= 0) {
+            sender.sendMessage(ChatColor.RED + "Display konnte nicht platziert werden.");
+            return true;
+        }
+
+        if (railGroup == null) {
+            sender.sendMessage(ChatColor.GREEN + "Display platziert: " + layoutName
+                    + " für " + station + " (" + placed + " Rahmen)");
+        } else {
+            sender.sendMessage(ChatColor.GREEN + "Display platziert: " + layoutName
+                    + " für " + station + ":" + railGroup + " (" + placed + " Rahmen)");
+        }
+
+        return true;
+    }
+
+    private ItemStack createDisplayItem(String displayType, String station, String railGroup, String layoutName) {
         MapDisplayProperties properties = MapDisplayProperties.createNew(DepartureDisplay.class);
         properties.set("displayType", displayType);
         properties.set("station", station);
-        if (displayType.equalsIgnoreCase("station")) {
-            properties.set("layout", "station-large");
-        } else {
-            properties.set("layout", "platform-small");
-        }
+        properties.set("layout", layoutName);
 
         if (railGroup != null) {
             properties.set("railGroup", railGroup);
@@ -446,66 +368,91 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return properties.getMapItem();
     }
 
-    private int placeFrames(Player player, ItemStack item, boolean glow) {
-        Location pos1 = selectionManager.getPos1(player);
-        Location pos2 = selectionManager.getPos2(player);
+    private int placeLayoutFrames(Player player,
+                                  ItemStack item,
+                                  boolean glow,
+                                  int widthBlocks,
+                                  int heightBlocks) {
 
-        if (pos1 == null || pos2 == null || pos1.getWorld() == null || pos2.getWorld() == null) {
+        Block targetBlock = player.getTargetBlockExact(10);
+
+        if (targetBlock == null) {
+            player.sendMessage(ChatColor.RED + "Bitte schaue einen Block an.");
             return 0;
         }
 
-        if (!pos1.getWorld().equals(pos2.getWorld())) {
-            player.sendMessage(ChatColor.RED + "Positionen müssen in derselben Welt liegen.");
-            return 0;
-        }
-
-        World world = pos1.getWorld();
-
-        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
-        int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
-        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
-        int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
-        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
-        int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
-
-        boolean flatX = minX == maxX;
-        boolean flatY = minY == maxY;
-        boolean flatZ = minZ == maxZ;
-
-        if (!flatX && !flatZ) {
-            player.sendMessage(ChatColor.RED + "Die Auswahl muss eine flache Wandfläche oder eine Linie an einer Wand sein.");
-            return 0;
-        }
-
+        World world = targetBlock.getWorld();
         BlockFace facing = getOppositeCardinalFacing(player);
 
-        // Bereits vorhandene ItemFrames in dieser Fläche -> Platzieren abbrechen
-        if (hasAnyItemFrameInArea(world, minX, maxX, minY, maxY, minZ, maxZ)) {
-            player.sendMessage(ChatColor.RED + "In der ausgewählten Fläche befindet sich bereits ein Display. Platzieren abgebrochen.");
-            return 0;
+        Location base = targetBlock.getLocation().add(
+                facing.getModX(),
+                facing.getModY(),
+                facing.getModZ()
+        );
+
+        BlockFace right = getRightFace(facing);
+
+        List<Location> frameLocations = new ArrayList<>();
+
+        for (int y = 0; y < heightBlocks; y++) {
+            for (int x = 0; x < widthBlocks; x++) {
+                Location location = base.clone()
+                        .add(
+                                -right.getModX() * x,
+                                -y,
+                                -right.getModZ() * x
+                        );
+
+                frameLocations.add(location);
+            }
+        }
+
+        for (Location location : frameLocations) {
+            if (hasItemFrameAt(location)) {
+                player.sendMessage(ChatColor.RED + "In der Displayfläche befindet sich bereits ein ItemFrame.");
+                return 0;
+            }
+
+            Block block = world.getBlockAt(location);
+
+            if (!block.getType().isAir()) {
+                player.sendMessage(ChatColor.RED + "Die Displayfläche ist nicht frei.");
+                return 0;
+            }
         }
 
         int placed = 0;
 
+        for (Location location : frameLocations) {
+            Location spawnLocation = location.clone().add(0.5, 0.5, 0.5);
+
+            ItemFrame frame;
+
+            if (glow) {
+                frame = (GlowItemFrame) world.spawnEntity(spawnLocation, EntityType.GLOW_ITEM_FRAME);
+            } else {
+                frame = (ItemFrame) world.spawnEntity(spawnLocation, EntityType.ITEM_FRAME);
+            }
+
+            frame.setFacingDirection(facing, true);
+            frame.setItem(item.clone(), false);
+            frame.setFixed(true);
+            frame.setVisible(true);
+
+            placed++;
+        }
+
         return placed;
     }
 
-    private boolean hasAnyItemFrameInArea(World world, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-        for (ItemFrame frame : world.getEntitiesByClass(ItemFrame.class)) {
-            Location location = frame.getLocation();
-
-            int x = location.getBlockX();
-            int y = location.getBlockY();
-            int z = location.getBlockZ();
-
-            if (x >= minX && x <= maxX
-                    && y >= minY && y <= maxY
-                    && z >= minZ && z <= maxZ) {
-                return true;
-            }
-        }
-
-        return false;
+    private BlockFace getRightFace(BlockFace facing) {
+        return switch (facing) {
+            case NORTH -> BlockFace.EAST;
+            case SOUTH -> BlockFace.WEST;
+            case EAST -> BlockFace.SOUTH;
+            case WEST -> BlockFace.NORTH;
+            default -> BlockFace.EAST;
+        };
     }
 
     private BlockFace getOppositeCardinalFacing(Player player) {
@@ -542,16 +489,6 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         return false;
-    }
-
-    private String formatLocation(Location location) {
-        return location.getWorld().getName()
-                + " "
-                + location.getBlockX()
-                + " "
-                + location.getBlockY()
-                + " "
-                + location.getBlockZ();
     }
 
     private ItemFrame getTargetItemFrame(Player player, double maxDistance) {
@@ -720,12 +657,8 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel give station <Stations Name>");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel give platform <Gleis> <Stations Name>");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place station <normal|glow> <Stations Name>");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place platform <normal|glow> <Gleis> <Stations Name>");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel pos1");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel pos2");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Station>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Gleis> <Station>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel remove");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug <signactions|clearstate|trigger>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel reload");
@@ -768,20 +701,16 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
         if (args.length == 1) {
             completions.add("debug");
-            completions.add("give");
             completions.add("place");
-            completions.add("pos1");
-            completions.add("pos2");
-            completions.add("remove");
             completions.add("reload");
             completions.add("warn");
+            completions.add("remove");
             return filterCompletions(completions, args[0]);
         }
 
         if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("place")) {
-                completions.add("station");
-                completions.add("platform");
+            if (args[0].equalsIgnoreCase("place")) {
+                completions.addAll(displayLayoutManager.getLayoutNames());
                 return filterCompletions(completions, args[1]);
             }
 
@@ -806,56 +735,29 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             return filterCompletions(completions, args[2]);
         }
 
-        if (args.length >= 3
-                && args[0].equalsIgnoreCase("give")
-                && args[1].equalsIgnoreCase("station")) {
+        if (args.length == 4 && args[0].equalsIgnoreCase("place")) {
+            DisplayLayout layout = displayLayoutManager.getLayout(args[1]);
 
-            String currentStationInput = joinArgs(args, 2);
-            completions.addAll(scheduleManager.getStationNames());
-            return filterCompletions(completions, currentStationInput);
+            if (layout != null && layout.getDisplayType().equalsIgnoreCase("platform")) {
+                completions.addAll(scheduleManager.getRailGroupNames());
+                return filterCompletions(completions, args[3]);
+            }
+
+            if (layout != null && layout.getDisplayType().equalsIgnoreCase("station")) {
+                String currentStationInput = joinArgs(args, 3);
+                completions.addAll(scheduleManager.getStationNames());
+                return filterCompletions(completions, currentStationInput);
+            }
         }
 
-        if (args.length == 3
-                && args[0].equalsIgnoreCase("give")
-                && args[1].equalsIgnoreCase("platform")) {
+        if (args.length >= 5 && args[0].equalsIgnoreCase("place")) {
+            DisplayLayout layout = displayLayoutManager.getLayout(args[1]);
 
-            completions.addAll(scheduleManager.getRailGroupNames());
-            return filterCompletions(completions, args[2]);
-        }
-
-        if (args.length >= 4
-                && args[0].equalsIgnoreCase("give")
-                && args[1].equalsIgnoreCase("platform")) {
-
-            String currentStationInput = joinArgs(args, 3);
-            completions.addAll(scheduleManager.getStationNames());
-            return filterCompletions(completions, currentStationInput);
-        }
-
-        if (args.length >= 4
-                && args[0].equalsIgnoreCase("place")
-                && args[1].equalsIgnoreCase("station")) {
-
-            String currentStationInput = joinArgs(args, 3);
-            completions.addAll(scheduleManager.getStationNames());
-            return filterCompletions(completions, currentStationInput);
-        }
-
-        if (args.length == 4
-                && args[0].equalsIgnoreCase("place")
-                && args[1].equalsIgnoreCase("platform")) {
-
-            completions.addAll(scheduleManager.getRailGroupNames());
-            return filterCompletions(completions, args[3]);
-        }
-
-        if (args.length >= 5
-                && args[0].equalsIgnoreCase("place")
-                && args[1].equalsIgnoreCase("platform")) {
-
-            String currentStationInput = joinArgs(args, 4);
-            completions.addAll(scheduleManager.getStationNames());
-            return filterCompletions(completions, currentStationInput);
+            if (layout != null && layout.getDisplayType().equalsIgnoreCase("platform")) {
+                String currentStationInput = joinArgs(args, 4);
+                completions.addAll(scheduleManager.getStationNames());
+                return filterCompletions(completions, currentStationInput);
+            }
         }
 
         if (args.length == 3
@@ -872,6 +774,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         if (args.length == 3
                 && args[0].equalsIgnoreCase("debug")
                 && args[1].equalsIgnoreCase("signactions")) {
+
             completions.add("true");
             completions.add("false");
             return filterCompletions(completions, args[2]);
@@ -880,6 +783,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         if (args.length == 3
                 && args[0].equalsIgnoreCase("debug")
                 && args[1].equalsIgnoreCase("trigger")) {
+
             completions.addAll(buildStationRailCompletions());
             return filterCompletions(completions, args[2]);
         }
