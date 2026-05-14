@@ -105,6 +105,10 @@ public class LayoutRenderer {
         boolean hasWarnings = !placeholders.getOrDefault("warnings", "").trim().isEmpty();
         boolean hasVia = !placeholders.getOrDefault("via", "").trim().isEmpty();
 
+        boolean onArrival = "true".equalsIgnoreCase(
+                placeholders.getOrDefault("onArrival", "false")
+        );
+
         return switch (condition.toLowerCase()) {
             case "has_departure" -> hasDeparture;
             case "no_departure" -> !hasDeparture;
@@ -114,6 +118,7 @@ public class LayoutRenderer {
             case "no_warnings" -> !hasWarnings;
             case "has_via" -> hasVia;
             case "no_via" -> !hasVia;
+            case "on_arrival" -> onArrival;
             default -> true;
         };
     }

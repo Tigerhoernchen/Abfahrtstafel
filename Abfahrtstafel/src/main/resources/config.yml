@@ -11,8 +11,21 @@ textScrollSpeedTicks: 1
 stationLookAheadMinutes: 120
 platformLookAheadMinutes: -1
 
+# Maximum minutes in where the arrival trigger may trigger the on_arrival.
+arrivalTriggerLookAheadMinutes: 1
+
 # Set the maximum of entries for the station display
 stationDisplayMaxEntries: 12
 
 # If true = sends console output if a train triggers a sign
 debugSignActions: false
+
+# Announcement settings for the soundboxes
+# Category. Can be: MASTER, MUSIC, RECORD, WEATHER, BLOCK, HOSTILE, NEUTRAL, PLAYER, AMBIENT, VOICE
+announcementSoundCategory: MASTER
+# Radius of the sound
+soundBoxDefaultRadius: 24
+# Default volume, can be individually changed in SoundBoxes.yml
+soundBoxDefaultVolume: 1.0
+# Default pitch, can be individually changed in SoundBoxes.yml
+soundBoxDefaultPitch: 1.0

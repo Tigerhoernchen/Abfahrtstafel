@@ -1,0 +1,10 @@
+soundBoxes:
+  - station: "Timber Hbf"
+    railGroup: "1a"
+    world: "world"
+    x: 100.5
+    y: 65.0
+    z: 200.5
+    radius: 24
+    volume: 1.0
+    pitch: 1.0

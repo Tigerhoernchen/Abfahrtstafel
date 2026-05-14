@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.map.MapDisplayProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -27,12 +28,16 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     private WarningManager warningManager;
     private RuntimeStateManager runtimeStateManager;
     private DisplayLayoutManager displayLayoutManager;
+    private SoundManager soundManager;
+    private SoundCategory announcementSoundCategory = SoundCategory.MASTER;
 
     private final SignActionAbfahrt signActionAbfahrt = new SignActionAbfahrt();
+    private final SignActionAnkunft signActionAnkunft = new SignActionAnkunft();
 
     @Override
     public void onLoad() {
         SignAction.register(signActionAbfahrt);
+        SignAction.register(signActionAnkunft);
     }
 
     @Override
@@ -41,6 +46,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
         saveDefaultConfig();
         reloadConfig();
+        loadAnnouncementSoundCategory();
 
         runtimeStateManager = new RuntimeStateManager();
 
@@ -51,7 +57,9 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         scheduleManager.load();
 
         warningManager = new WarningManager(this);
-        warningManager.load();
+
+        soundManager = new SoundManager(this);
+        soundManager.load();
 
         getLogger().info("[Abfahrtstafel] Plugin gestartet!");
         getLogger().info("[Abfahrtstafel] BKCommonLib und TrainCarts wurden gefunden!");
@@ -60,6 +68,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         SignAction.unregister(signActionAbfahrt);
+        SignAction.unregister(signActionAnkunft);
         getLogger().info("Abfahrtstafel Plugin gestoppt!");
     }
 
@@ -81,6 +90,14 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
     public DisplayLayoutManager getDisplayLayoutManager() {
         return displayLayoutManager;
+    }
+
+    public SoundManager getSoundManager() {
+        return soundManager;
+    }
+
+    public SoundCategory getAnnouncementSoundCategory() {
+        return announcementSoundCategory;
     }
 
     public boolean isDebugSignActions() {
@@ -111,6 +128,10 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return getConfig().getInt("displayUpdateTicks", 10);
     }
 
+    public int getArrivalTriggerLookAheadMinutes() {
+        return getConfig().getInt("arrivalTriggerLookAheadMinutes", 5);
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("abfahrtstafel")) {
@@ -123,9 +144,12 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             }
 
             reloadConfig();
+            loadAnnouncementSoundCategory();
             scheduleManager.load();
             warningManager.load();
             displayLayoutManager.load();
+            soundManager.load();
+
             sender.sendMessage(ChatColor.GREEN + "Dateien wurden neu geladen.");
             return true;
         }
@@ -236,6 +260,83 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             return handleWarnCommand(sender, args);
         }
 
+        if (args.length >= 2 && args[0].equalsIgnoreCase("soundbox")) {
+            if (!checkPermission(sender, "abfahrtstafel.admin")) {
+                return true;
+            }
+
+            if (args[1].equalsIgnoreCase("list")) {
+                sender.sendMessage(ChatColor.YELLOW + "Soundboxen:");
+
+                for (SoundBox box : soundManager.getSoundBoxes()) {
+                    sender.sendMessage(ChatColor.GRAY + "#" + box.getId()
+                            + ChatColor.AQUA + " " + box.getStation() + ":" + box.getRailGroup()
+                            + ChatColor.GRAY + " " + box.getWorld()
+                            + " " + String.format("%.1f %.1f %.1f", box.getX(), box.getY(), box.getZ())
+                            + " r=" + box.getRadius()
+                            + " v=" + box.getVolume()
+                            + " p=" + box.getPitch());
+                }
+
+                return true;
+            }
+
+            if (args[1].equalsIgnoreCase("create")) {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("Dieser Befehl kann nur im Spiel benutzt werden.");
+                    return true;
+                }
+
+                if (args.length < 4) {
+                    sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel soundbox create <Gleis> <Bahnhof>");
+                    return true;
+                }
+
+                String railGroup = args[2];
+                String station = joinArgs(args, 3);
+
+                SoundBox box = soundManager.createSoundBox(station, railGroup, player.getLocation());
+
+                if (box == null) {
+                    sender.sendMessage(ChatColor.RED + "Soundbox konnte nicht erstellt werden.");
+                    return true;
+                }
+
+                sender.sendMessage(ChatColor.GREEN + "Soundbox erstellt: #" + box.getId()
+                        + " für " + station + ":" + railGroup);
+                return true;
+            }
+
+            if (args[1].equalsIgnoreCase("remove")) {
+                if (args.length != 3) {
+                    sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel soundbox remove <id>");
+                    return true;
+                }
+
+                int id;
+
+                try {
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(ChatColor.RED + "Ungültige ID.");
+                    return true;
+                }
+
+                if (soundManager.removeSoundBox(id)) {
+                    sender.sendMessage(ChatColor.GREEN + "Soundbox #" + id + " entfernt.");
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Soundbox #" + id + " nicht gefunden.");
+                }
+
+                return true;
+            }
+
+            sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox create <Gleis> <Bahnhof>");
+            sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox list");
+            sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox remove <id>");
+            return true;
+        }
+
         if (args.length >= 2 && args[0].equalsIgnoreCase("debug")) {
             if (!checkPermission(sender, "abfahrtstafel.admin")) {
                 return true;
@@ -295,8 +396,35 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return true;
             }
 
+            if (debugTarget.equals("soundbox")) {
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("Dieser Befehl kann nur im Spiel benutzt werden.");
+                    return true;
+                }
+
+                if (args.length < 4) {
+                    sender.sendMessage(ChatColor.YELLOW
+                            + "Nutzung: /abfahrtstafel debug soundbox <Gleis> <Bahnhof>");
+                    return true;
+                }
+
+                String railGroup = args[2];
+                String station = joinArgs(args, 3);
+
+                soundManager.playPlatformSound(
+                        station,
+                        railGroup,
+                        "minecraft:block.note_block.pling"
+                );
+
+                sender.sendMessage(ChatColor.GREEN
+                        + "Testsound für " + station + ":" + railGroup + " abgespielt.");
+
+                return true;
+            }
+
             sender.sendMessage(ChatColor.YELLOW
-                    + "Nutzung: /abfahrtstafel debug <signactions|trigger|clearstate>");
+                    + "Nutzung: /abfahrtstafel debug <signactions|soundbox|trigger|clearstate>");
             return true;
         }
 
@@ -685,11 +813,26 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Gleis> <Station>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel remove");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel layouts");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug <signactions|clearstate|trigger>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug <signactions|soundbox|clearstate|trigger>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug soundbox <Gleis> <Bahnhof>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel reload");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox create <Gleis> <Bahnhof>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox list");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox remove <id>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn list");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn enable <id>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn disable <id>");
+    }
+
+    private void loadAnnouncementSoundCategory() {
+        String categoryName = getConfig().getString("announcementSoundCategory", "MASTER");
+
+        try {
+            announcementSoundCategory = SoundCategory.valueOf(categoryName.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            announcementSoundCategory = SoundCategory.MASTER;
+            getLogger().warning("Ungültige announcementSoundCategory: " + categoryName + ". Verwende MASTER.");
+        }
     }
 
     private boolean checkPermission(CommandSender sender, String permission) {
@@ -729,6 +872,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             completions.add("layouts");
             completions.add("place");
             completions.add("reload");
+            completions.add("soundbox");
             completions.add("warn");
             completions.add("remove");
             return filterCompletions(completions, args[0]);
@@ -747,8 +891,16 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return filterCompletions(completions, args[1]);
             }
 
+            if (args[0].equalsIgnoreCase("soundbox")) {
+                completions.add("create");
+                completions.add("list");
+                completions.add("remove");
+                return filterCompletions(completions, args[1]);
+            }
+
             if (args[0].equalsIgnoreCase("debug")) {
                 completions.add("signactions");
+                completions.add("soundbox");
                 completions.add("trigger");
                 completions.add("clearstate");
                 return filterCompletions(completions, args[1]);
@@ -812,6 +964,40 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
             completions.addAll(buildStationRailCompletions());
             return filterCompletions(completions, args[2]);
+        }
+
+        if (args.length == 3
+                && args[0].equalsIgnoreCase("debug")
+                && args[1].equalsIgnoreCase("soundbox")) {
+
+            completions.addAll(scheduleManager.getRailGroupNames());
+            return filterCompletions(completions, args[2]);
+        }
+
+        if (args.length >= 4
+                && args[0].equalsIgnoreCase("debug")
+                && args[1].equalsIgnoreCase("soundbox")) {
+
+            String currentStationInput = joinArgs(args, 3);
+            completions.addAll(scheduleManager.getStationNames());
+            return filterCompletions(completions, currentStationInput);
+        }
+
+        if (args.length == 3
+                && args[0].equalsIgnoreCase("soundbox")
+                && args[1].equalsIgnoreCase("create")) {
+
+            completions.addAll(scheduleManager.getRailGroupNames());
+            return filterCompletions(completions, args[2]);
+        }
+
+        if (args.length >= 4
+                && args[0].equalsIgnoreCase("soundbox")
+                && args[1].equalsIgnoreCase("create")) {
+
+            String currentStationInput = joinArgs(args, 3);
+            completions.addAll(scheduleManager.getStationNames());
+            return filterCompletions(completions, currentStationInput);
         }
 
         return completions;

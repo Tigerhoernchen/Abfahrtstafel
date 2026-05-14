@@ -67,12 +67,17 @@ public class ScheduleManager {
                     }
                 }
 
+                String arrivalPlatformSound = getString(rawGroup, "arrivalPlatformSound", "");
+                String arrivalTrainSound = getString(rawGroup, "arrivalTrainSound", "");
+
                 orderedRailGroups.add(new OrderedRailGroup(
                         orderIndex,
                         groupName,
                         parentStation,
                         finalStop,
-                        departures
+                        departures,
+                        arrivalPlatformSound,
+                        arrivalTrainSound
                 ));
             }
 
@@ -81,6 +86,16 @@ public class ScheduleManager {
         }
 
         plugin.getLogger().info("TrainLines geladen: " + trainLines.size() + " Linien");
+    }
+
+    private String getString(Map<?, ?> map, String key, String defaultValue) {
+        Object value = map.get(key);
+
+        if (value == null) {
+            return defaultValue;
+        }
+
+        return String.valueOf(value);
     }
 
     public List<String> getStationNames() {
@@ -416,5 +431,76 @@ public class ScheduleManager {
             LocalTime time,
             long minutesUntil
     ) {
+    }
+
+    public record ArrivalCandidate(
+            long minutes,
+            String station,
+            String railGroup,
+            String line,
+            LocalTime departureTime,
+            String destination,
+            String via,
+            long delayMinutes,
+            OrderedRailGroup orderedRailGroup
+    ) {
+    }
+
+    public ArrivalCandidate findNextArrivalCandidate(String stationName, String railGroupName) {
+        LocalTime now = LocalTime.now();
+        ArrivalCandidate bestCandidate = null;
+
+        for (TrainLine trainLine : trainLines) {
+            List<OrderedRailGroup> groups = trainLine.getOrderedRailGroups();
+
+            for (int i = 0; i < groups.size(); i++) {
+                OrderedRailGroup group = groups.get(i);
+
+                boolean matchingStation = group.getParentStation().equalsIgnoreCase(stationName);
+                boolean matchingRailGroup = group.getName().equalsIgnoreCase(railGroupName);
+
+                if (!matchingStation || !matchingRailGroup || group.isFinalStop()) {
+                    continue;
+                }
+
+                String destination = findFinalDestination(groups);
+                String via = buildViaText(groups, i);
+
+                for (LocalTime departureTime : group.getDepartures()) {
+                    if (isHiddenByStateOrTimeout(group.getParentStation(), group.getName(), trainLine.getName(), departureTime, now)) {
+                        continue;
+                    }
+
+                    long minutes = minutesUntil(now, departureTime);
+                    int arrivalLookAheadMinutes = plugin.getArrivalTriggerLookAheadMinutes();
+
+                    if (minutes < -plugin.getDepartureTimeoutMinutes()) {
+                        continue;
+                    }
+
+                    if (arrivalLookAheadMinutes >= 0 && minutes > arrivalLookAheadMinutes) {
+                        continue;
+                    }
+
+                    long delayMinutes = calculateDelayMinutes(now, departureTime);
+
+                    if (bestCandidate == null || minutes < bestCandidate.minutes()) {
+                        bestCandidate = new ArrivalCandidate(
+                                minutes,
+                                group.getParentStation(),
+                                group.getName(),
+                                trainLine.getName(),
+                                departureTime,
+                                destination,
+                                via,
+                                delayMinutes,
+                                group
+                        );
+                    }
+                }
+            }
+        }
+
+        return bestCandidate;
     }
 }

@@ -92,6 +92,7 @@ public class DepartureDisplay extends MapDisplay {
         placeholders.put("track", railGroup);
         placeholders.put("currentTime", LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
         placeholders.put("currentDate", LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+        placeholders.put("onArrival", "false");
 
         if (displayType.equalsIgnoreCase("platform")) {
             renderDepartures = AbfahrtstafelPlugin
@@ -106,6 +107,18 @@ public class DepartureDisplay extends MapDisplay {
 
             if (!renderDepartures.isEmpty()) {
                 Departure departure = renderDepartures.get(0);
+
+                boolean onArrival = AbfahrtstafelPlugin
+                        .getInstance()
+                        .getRuntimeStateManager()
+                        .isArrival(
+                                station,
+                                railGroup,
+                                departure.getLine(),
+                                departure.getTime()
+                        );
+
+                placeholders.put("onArrival", String.valueOf(onArrival));
 
                 List<WarnMessage> warnings = AbfahrtstafelPlugin
                         .getInstance()
@@ -138,6 +151,18 @@ public class DepartureDisplay extends MapDisplay {
 
             if (!renderDepartures.isEmpty()) {
                 Departure firstDeparture = renderDepartures.get(0);
+
+                boolean onArrival = AbfahrtstafelPlugin
+                        .getInstance()
+                        .getRuntimeStateManager()
+                        .isArrival(
+                                station,
+                                firstDeparture.getPlatform(),
+                                firstDeparture.getLine(),
+                                firstDeparture.getTime()
+                        );
+
+                placeholders.put("onArrival", String.valueOf(onArrival));
 
                 List<WarnMessage> warnings = AbfahrtstafelPlugin
                         .getInstance()
