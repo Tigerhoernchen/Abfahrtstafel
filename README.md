@@ -1,6 +1,8 @@
 
 # Abfahrtstafel
-
+> [!CAUTION]
+> Das Plugin hat sich seit dem 14.05.2026 stark abgeändert.<br>
+> Anleitungen, Befehle, Strukturen der yaml-Dateien haben sich stark verändern.<br>
 Minecraft-Plugin für Paper/Spigot mit realistischen Bahnhofs- und Gleisanzeigen auf Karten.
 
 
