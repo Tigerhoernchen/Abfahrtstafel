@@ -146,7 +146,7 @@ public class SoundManager {
                 }
 
                 player.playSound(
-                        player.getLocation(),
+                        player,
                         soundName,
                         plugin.getAnnouncementSoundCategory(),
                         1.0f,
