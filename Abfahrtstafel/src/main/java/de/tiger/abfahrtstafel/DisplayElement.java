@@ -21,6 +21,10 @@ public class DisplayElement {
     private final List<DisplayColumn> columns;
     private String showWhen;
     private String source;
+    private final String font;
+    private final String fontStyle;
+    private final String padding;
+    private final String scrollSeparator;
 
 
 
@@ -28,8 +32,8 @@ public class DisplayElement {
                           int height, String align, String scroll, int fontSize,
                           String color, String background, int thickness,
                           int rowHeight, int maxRows,
-                          List<DisplayColumn> columns,
-                          String showWhen, String source) {
+                          List<DisplayColumn> columns,String showWhen,
+                          String source, String font, String fontStyle, String padding, String scrollSeparator) {
         this.type = type;
         this.value = value;
         this.x = x;
@@ -47,7 +51,10 @@ public class DisplayElement {
         this.columns = columns;
         this.showWhen = showWhen;
         this.source = source;
-
+        this.font = font;
+        this.fontStyle = fontStyle;
+        this.padding = padding;
+        this.scrollSeparator = scrollSeparator;
     }
 
     public String getType() { return type; }
@@ -80,5 +87,21 @@ public class DisplayElement {
 
     public String getSource() {
         return source;
+    }
+
+    public String getFont() {
+        return font;
+    }
+
+    public String getFontStyle() {
+        return fontStyle;
+    }
+
+    public String getPadding() {
+        return padding;
+    }
+
+    public String getScrollSeparator() {
+        return scrollSeparator;
     }
 }

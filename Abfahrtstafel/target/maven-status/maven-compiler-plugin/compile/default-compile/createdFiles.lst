@@ -12,6 +12,7 @@ de\tiger\abfahrtstafel\RuntimeStateManager.class
 de\tiger\abfahrtstafel\LayoutRenderer.class
 de\tiger\abfahrtstafel\ScheduleManager.class
 de\tiger\abfahrtstafel\DisplayLayoutManager.class
+de\tiger\abfahrtstafel\DisplayDefaults.class
 de\tiger\abfahrtstafel\DisplaySection.class
 de\tiger\abfahrtstafel\WarningManager.class
 de\tiger\abfahrtstafel\WarnMessage.class

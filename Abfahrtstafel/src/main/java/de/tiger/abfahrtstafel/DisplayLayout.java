@@ -10,12 +10,16 @@ public class DisplayLayout {
     private final String background;
     private final List<DisplayElement> elements;
     private final List<DisplaySection> sections;
+    private final String description;
+    private final DisplayDefaults defaults;
 
     public DisplayLayout(String name,
                          String displayType,
                          int widthBlocks,
                          int heightBlocks,
                          String background,
+                         String description,
+                         DisplayDefaults defaults,
                          List<DisplayElement> elements,
                          List<DisplaySection> sections) {
         this.name = name;
@@ -23,6 +27,8 @@ public class DisplayLayout {
         this.widthBlocks = widthBlocks;
         this.heightBlocks = heightBlocks;
         this.background = background;
+        this.description = description;
+        this.defaults = defaults;
         this.elements = elements;
         this.sections = sections;
     }
@@ -53,5 +59,13 @@ public class DisplayLayout {
 
     public List<DisplaySection> getSections() {
         return sections;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public DisplayDefaults getDefaults() {
+        return defaults;
     }
 }

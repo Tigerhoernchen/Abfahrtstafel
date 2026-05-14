@@ -24,48 +24,18 @@ public class LayoutRenderer {
             g.fillRect(0, 0, canvasWidth, canvasHeight);
         }
 
-        boolean hasDeparture = departures != null && !departures.isEmpty();
-
-        boolean hasDelay = hasDeparture
-                && departures.get(0).getDelayMinutes() > 0;
-
-        boolean hasWarnings = placeholders.getOrDefault("warnings", "").trim().length() > 0;
-
-        boolean hasVia = placeholders.getOrDefault("via", "").trim().length() > 0;
-
-        // Klassische Elemente (alte Struktur)
         for (DisplayElement element : layout.getElements()) {
-            renderElement(
-                    g,
-                    element,
-                    placeholders,
-                    departures,
-                    stationDepartures,
-                    textScroll,
-                    canvasWidth,
-                    canvasHeight
-            );
+            renderElement(g, element, placeholders, departures, stationDepartures, textScroll, canvasWidth, canvasHeight);
         }
 
-        // Neue Sections
         if (layout.getSections() != null) {
             for (DisplaySection section : layout.getSections()) {
-
                 if (!shouldRender(section.getWhen(), placeholders, departures)) {
                     continue;
                 }
 
                 for (DisplayElement element : section.getElements()) {
-                    renderElement(
-                            g,
-                            element,
-                            placeholders,
-                            departures,
-                            stationDepartures,
-                            textScroll,
-                            canvasWidth,
-                            canvasHeight
-                    );
+                    renderElement(g, element, placeholders, departures, stationDepartures, textScroll, canvasWidth, canvasHeight);
                 }
             }
         }
@@ -84,8 +54,7 @@ public class LayoutRenderer {
             return;
         }
 
-        if ("text".equalsIgnoreCase(element.getType())
-                || "warning".equalsIgnoreCase(element.getType())) {
+        if ("text".equalsIgnoreCase(element.getType()) || "warning".equalsIgnoreCase(element.getType())) {
             drawText(g, element, placeholders, textScroll, canvasWidth);
         }
 
@@ -104,15 +73,7 @@ public class LayoutRenderer {
                 listData = stationDepartures;
             }
 
-            drawDepartureList(
-                    g,
-                    element,
-                    placeholders,
-                    listData,
-                    textScroll,
-                    canvasWidth,
-                    canvasHeight
-            );
+            drawDepartureList(g, element, placeholders, listData, textScroll, canvasWidth, canvasHeight);
         }
     }
 
@@ -120,31 +81,39 @@ public class LayoutRenderer {
                                  Map<String, String> placeholders,
                                  List<Departure> departures) {
 
-        if (condition == null || condition.isBlank() || "always".equalsIgnoreCase(condition)) {
+        if (condition == null || condition.isBlank() || "always".equalsIgnoreCase(condition) || "default".equalsIgnoreCase(condition)) {
             return true;
         }
 
+        String[] conditions = condition.split(",");
+
+        for (String singleCondition : conditions) {
+            if (!shouldRenderSingle(singleCondition.trim(), placeholders, departures)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean shouldRenderSingle(String condition,
+                                       Map<String, String> placeholders,
+                                       List<Departure> departures) {
+
         boolean hasDeparture = departures != null && !departures.isEmpty();
-
-        boolean hasDelay = hasDeparture
-                && departures.get(0).getDelayMinutes() > 0;
-
-        boolean hasWarnings = placeholders
-                .getOrDefault("warnings", "")
-                .trim()
-                .length() > 0;
-
-        boolean hasVia = placeholders
-                .getOrDefault("via", "")
-                .trim()
-                .length() > 0;
+        boolean hasDelay = hasDeparture && departures.get(0).getDelayMinutes() > 0;
+        boolean hasWarnings = !placeholders.getOrDefault("warnings", "").trim().isEmpty();
+        boolean hasVia = !placeholders.getOrDefault("via", "").trim().isEmpty();
 
         return switch (condition.toLowerCase()) {
             case "has_departure" -> hasDeparture;
             case "no_departure" -> !hasDeparture;
             case "has_delay" -> hasDelay;
+            case "no_delay" -> !hasDelay;
             case "has_warnings" -> hasWarnings;
+            case "no_warnings" -> !hasWarnings;
             case "has_via" -> hasVia;
+            case "no_via" -> !hasVia;
             default -> true;
         };
     }
@@ -161,20 +130,16 @@ public class LayoutRenderer {
             return;
         }
 
-        Font font = new Font("SansSerif", Font.PLAIN, element.getFontSize());
+        Font font = createFont(element.getFont(), element.getFontStyle(), element.getFontSize());
         g.setFont(font);
         g.setColor(parseColor(element.getColor()));
 
         int x = element.getX();
         int y = element.getY();
 
-        int width;
-
-        if ("fill".equalsIgnoreCase(element.getWidth())) {
-            width = canvasWidth - x;
-        } else {
-            width = parseIntSafe(element.getWidth(), 50);
-        }
+        int width = "fill".equalsIgnoreCase(element.getWidth())
+                ? canvasWidth - x
+                : parseIntSafe(element.getWidth(), 50);
 
         drawTextInBox(
                 g,
@@ -187,7 +152,9 @@ public class LayoutRenderer {
                 element.getScroll(),
                 textScroll,
                 element.getBackground(),
-                element.getColor()
+                element.getColor(),
+                element.getScrollSeparator(),
+                element.getPadding()
         );
     }
 
@@ -205,16 +172,8 @@ public class LayoutRenderer {
 
         int startX = element.getX();
         int startY = element.getY();
-        int rowHeight = element.getRowHeight();
-        int maxRows = element.getMaxRows();
-
-        if (rowHeight <= 0) {
-            rowHeight = 20;
-        }
-
-        if (maxRows <= 0) {
-            maxRows = departures.size();
-        }
+        int rowHeight = element.getRowHeight() <= 0 ? 20 : element.getRowHeight();
+        int maxRows = element.getMaxRows() <= 0 ? departures.size() : element.getMaxRows();
 
         int availableHeight = element.getHeight() > 0
                 ? element.getHeight()
@@ -274,19 +233,15 @@ public class LayoutRenderer {
             return;
         }
 
-        Font font = new Font("SansSerif", Font.PLAIN, column.getFontSize());
+        Font font = createFont(column.getFont(), column.getFontStyle(), column.getFontSize());
         g.setFont(font);
         g.setColor(parseColor(column.getColor()));
 
         int x = baseX + column.getX();
 
-        int width;
-
-        if ("fill".equalsIgnoreCase(column.getWidth())) {
-            width = canvasWidth - x;
-        } else {
-            width = parseIntSafe(column.getWidth(), 50);
-        }
+        int width = "fill".equalsIgnoreCase(column.getWidth())
+                ? canvasWidth - x
+                : parseIntSafe(column.getWidth(), 50);
 
         drawTextInBox(
                 g,
@@ -299,7 +254,9 @@ public class LayoutRenderer {
                 column.getScroll(),
                 textScroll,
                 null,
-                column.getColor()
+                column.getColor(),
+                column.getScrollSeparator(),
+                "0"
         );
     }
 
@@ -313,12 +270,14 @@ public class LayoutRenderer {
         g.setFont(new Font("SansSerif", Font.PLAIN, 13));
         g.setColor(Color.WHITE);
 
-        drawTextInBox(g, placeholders.getOrDefault("time", ""), x + 8, y, 50, 13, "left", "none", textScroll, null, "#FFFFFF");
-        drawTextInBox(g, placeholders.getOrDefault("expected", ""), x + 65, y, 55, 13, "left", "none", textScroll, null, "#FFFFFF");
-        drawTextInBox(g, placeholders.getOrDefault("line", ""), x + 128, y, 40, 13, "left", "none", textScroll, null, "#FFFFFF");
-        drawTextInBox(g, placeholders.getOrDefault("via", ""), x + 172, y, 120, 13, "left", "continuous", textScroll, null, "#FFFFFF");
-        drawTextInBox(g, placeholders.getOrDefault("destination", ""), Math.max(300, canvasWidth - 210), y, 110, 13, "left", "pingpong", textScroll, null, "#FFFFFF");
-        drawTextInBox(g, placeholders.getOrDefault("track", ""), canvasWidth - 88, y, 40, 13, "right", "none", textScroll, null, "#FFFFFF");
+        String separator = "  ***  ";
+
+        drawTextInBox(g, placeholders.getOrDefault("time", ""), x + 8, y, 50, 13, "left", "none", textScroll, null, "#FFFFFF", separator, "0");
+        drawTextInBox(g, placeholders.getOrDefault("expected", ""), x + 65, y, 55, 13, "left", "none", textScroll, null, "#FFFFFF", separator, "0");
+        drawTextInBox(g, placeholders.getOrDefault("line", ""), x + 128, y, 40, 13, "left", "none", textScroll, null, "#FFFFFF", separator, "0");
+        drawTextInBox(g, placeholders.getOrDefault("via", ""), x + 172, y, 120, 13, "left", "continuous", textScroll, null, "#FFFFFF", separator, "0");
+        drawTextInBox(g, placeholders.getOrDefault("destination", ""), Math.max(300, canvasWidth - 210), y, 110, 13, "left", "pingpong", textScroll, null, "#FFFFFF", separator, "0");
+        drawTextInBox(g, placeholders.getOrDefault("track", ""), canvasWidth - 88, y, 40, 13, "right", "none", textScroll, null, "#FFFFFF", separator, "0");
     }
 
     private void drawTextInBox(Graphics2D g,
@@ -331,33 +290,50 @@ public class LayoutRenderer {
                                String scrollMode,
                                int textScroll,
                                String background,
-                               String textColor) {
+                               String textColor,
+                               String scrollSeparator,
+                               String padding) {
 
         if (text == null || text.isEmpty() || width <= 0) {
             return;
         }
 
+        int[] p = parsePadding(padding);
+
+        int padTop = p[0];
+        int padRight = p[1];
+        int padBottom = p[2];
+        int padLeft = p[3];
+
+        int innerX = x + padLeft;
+        int innerWidth = width - padLeft - padRight;
+
+        if (innerWidth <= 0) {
+            return;
+        }
+
         FontMetrics metrics = g.getFontMetrics();
         int textWidth = metrics.stringWidth(text);
+
         if (background != null && !background.isEmpty()) {
             g.setColor(parseColor(background));
             g.fillRect(
                     x,
-                    y - metrics.getAscent() - 2,
+                    y - metrics.getAscent() - padTop,
                     width,
-                    metrics.getHeight() + 4
+                    metrics.getHeight() + padTop + padBottom
             );
 
             g.setColor(parseColor(textColor));
         }
 
-        if (textWidth <= width) {
-            int drawX = x;
+        if (textWidth <= innerWidth) {
+            int drawX = innerX;
 
             if ("center".equalsIgnoreCase(align)) {
-                drawX = x + (width - textWidth) / 2;
+                drawX = innerX + (innerWidth - textWidth) / 2;
             } else if ("right".equalsIgnoreCase(align)) {
-                drawX = x + width - textWidth;
+                drawX = innerX + innerWidth - textWidth;
             }
 
             g.drawString(text, drawX, y);
@@ -365,14 +341,18 @@ public class LayoutRenderer {
         }
 
         Shape oldClip = g.getClip();
-        g.setClip(x, y - fontSize, width, fontSize + 8);
+        g.setClip(innerX, y - fontSize, innerWidth, fontSize + 8);
 
         if (scrollMode == null) {
             scrollMode = "none";
         }
 
         if ("continuous".equalsIgnoreCase(scrollMode)) {
-            String repeatedText = text + "   ***   ";
+            if (scrollSeparator == null || scrollSeparator.isEmpty()) {
+                scrollSeparator = "  ***  ";
+            }
+
+            String repeatedText = text + scrollSeparator;
             int repeatedWidth = metrics.stringWidth(repeatedText);
 
             if (repeatedWidth <= 0) {
@@ -381,9 +361,9 @@ public class LayoutRenderer {
             }
 
             int offset = textScroll % repeatedWidth;
-            int startX = x - offset;
+            int startX = innerX - offset;
 
-            for (int drawX = startX; drawX < x + width; drawX += repeatedWidth) {
+            for (int drawX = startX; drawX < innerX + innerWidth; drawX += repeatedWidth) {
                 g.drawString(repeatedText, drawX, y);
             }
 
@@ -392,7 +372,7 @@ public class LayoutRenderer {
         }
 
         if ("pingpong".equalsIgnoreCase(scrollMode)) {
-            int overflow = textWidth - width;
+            int overflow = textWidth - innerWidth;
 
             int forwardTicks = overflow;
             int pauseEndTicks = 30;
@@ -416,8 +396,7 @@ public class LayoutRenderer {
                 offset = 0;
             }
 
-            g.drawString(text, x - offset, y);
-
+            g.drawString(text, innerX - offset, y);
             g.setClip(oldClip);
             return;
         }
@@ -425,11 +404,11 @@ public class LayoutRenderer {
         String shortened = text;
 
         while (shortened.length() > 3
-                && metrics.stringWidth(shortened + "...") > width) {
+                && metrics.stringWidth(shortened + "...") > innerWidth) {
             shortened = shortened.substring(0, shortened.length() - 1);
         }
 
-        g.drawString(shortened + "...", x, y);
+        g.drawString(shortened + "...", innerX, y);
         g.setClip(oldClip);
     }
 
@@ -440,13 +419,9 @@ public class LayoutRenderer {
         int x = element.getX();
         int y = element.getY();
 
-        int width;
-
-        if ("fill".equalsIgnoreCase(element.getWidth())) {
-            width = canvasWidth - x;
-        } else {
-            width = parseIntSafe(element.getWidth(), 50);
-        }
+        int width = "fill".equalsIgnoreCase(element.getWidth())
+                ? canvasWidth - x
+                : parseIntSafe(element.getWidth(), 50);
 
         g.setColor(parseColor(element.getColor()));
         g.fillRect(x, y, width, Math.max(1, element.getThickness()));
@@ -460,19 +435,13 @@ public class LayoutRenderer {
         int x = element.getX();
         int y = element.getY();
 
-        int width;
-        if ("fill".equalsIgnoreCase(element.getWidth())) {
-            width = canvasWidth - x;
-        } else {
-            width = parseIntSafe(element.getWidth(), 0);
-        }
+        int width = "fill".equalsIgnoreCase(element.getWidth())
+                ? canvasWidth - x
+                : parseIntSafe(element.getWidth(), 0);
 
-        int height;
-        if (element.getHeight() <= 0) {
-            height = canvasHeight - y;
-        } else {
-            height = element.getHeight();
-        }
+        int height = element.getHeight() <= 0
+                ? canvasHeight - y
+                : element.getHeight();
 
         if (width <= 0 || height <= 0) {
             return;
@@ -504,7 +473,6 @@ public class LayoutRenderer {
                                        Map<String, String> placeholders) {
         String result = text;
 
-        // Bedingte Blöcke: {?key:...}
         while (true) {
             int start = result.indexOf("{?");
 
@@ -517,7 +485,6 @@ public class LayoutRenderer {
                 break;
             }
 
-            // Passende schließende Klammer finden (verschachtelte {...} erlauben)
             int depth = 0;
             int end = -1;
 
@@ -545,19 +512,13 @@ public class LayoutRenderer {
 
             String value = placeholders.getOrDefault(key, "").trim();
 
-            String replacement;
-            if (value.isEmpty()) {
-                replacement = "";
-            } else {
-                replacement = content;
-            }
+            String replacement = value.isEmpty() ? "" : content;
 
             result = result.substring(0, start)
                     + replacement
                     + result.substring(end + 1);
         }
 
-        // Normale Platzhalter ersetzen
         for (Map.Entry<String, String> entry : placeholders.entrySet()) {
             result = result.replace(
                     "{" + entry.getKey() + "}",
@@ -600,5 +561,69 @@ public class LayoutRenderer {
         }
 
         return builder.toString();
+    }
+
+    private Font createFont(String fontName, String fontStyle, int fontSize) {
+        int style = Font.PLAIN;
+
+        if ("bold".equalsIgnoreCase(fontStyle)) {
+            style = Font.BOLD;
+        } else if ("italic".equalsIgnoreCase(fontStyle)) {
+            style = Font.ITALIC;
+        } else if ("bold_italic".equalsIgnoreCase(fontStyle)
+                || "boldItalic".equalsIgnoreCase(fontStyle)) {
+            style = Font.BOLD | Font.ITALIC;
+        }
+
+        if (fontName == null || fontName.isBlank()) {
+            fontName = "SansSerif";
+        }
+
+        return new Font(fontName, style, fontSize);
+    }
+
+    private int[] parsePadding(String padding) {
+        int[] result = new int[]{0, 0, 0, 0};
+
+        if (padding == null || padding.isBlank()) {
+            return result;
+        }
+
+        String[] parts = padding.trim().split("\\s+");
+
+        try {
+            if (parts.length == 1) {
+                int all = Integer.parseInt(parts[0]);
+                result[0] = all;
+                result[1] = all;
+                result[2] = all;
+                result[3] = all;
+            } else if (parts.length == 2) {
+                int vertical = Integer.parseInt(parts[0]);
+                int horizontal = Integer.parseInt(parts[1]);
+
+                result[0] = vertical;
+                result[1] = horizontal;
+                result[2] = vertical;
+                result[3] = horizontal;
+            } else if (parts.length == 3) {
+                int top = Integer.parseInt(parts[0]);
+                int horizontal = Integer.parseInt(parts[1]);
+                int bottom = Integer.parseInt(parts[2]);
+
+                result[0] = top;
+                result[1] = horizontal;
+                result[2] = bottom;
+                result[3] = horizontal;
+            } else if (parts.length >= 4) {
+                result[0] = Integer.parseInt(parts[0]);
+                result[1] = Integer.parseInt(parts[1]);
+                result[2] = Integer.parseInt(parts[2]);
+                result[3] = Integer.parseInt(parts[3]);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+
+        return result;
     }
 }

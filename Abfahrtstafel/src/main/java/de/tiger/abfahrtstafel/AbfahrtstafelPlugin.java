@@ -130,6 +130,30 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             return true;
         }
 
+        if (args.length == 1 && args[0].equalsIgnoreCase("layouts")) {
+            if (!checkPermission(sender, "abfahrtstafel.admin")) {
+                return true;
+            }
+
+            sender.sendMessage(ChatColor.YELLOW + "Verfügbare DisplayLayouts:");
+
+            for (DisplayLayout layout : displayLayoutManager.getLayouts()) {
+                String description = layout.getDescription();
+
+                if (description == null || description.isBlank()) {
+                    description = "Keine Beschreibung";
+                }
+
+                sender.sendMessage(ChatColor.GRAY + "- "
+                        + ChatColor.AQUA + layout.getName()
+                        + ChatColor.GRAY + " [" + layout.getDisplayType()
+                        + ", " + layout.getWidthBlocks() + "x" + layout.getHeightBlocks() + "] "
+                        + ChatColor.WHITE + description);
+            }
+
+            return true;
+        }
+
         if (args.length == 1 && args[0].equalsIgnoreCase("clearstate")) {
             if (!checkPermission(sender, "abfahrtstafel.admin")) {
                 return true;
@@ -660,6 +684,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Station>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Gleis> <Station>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel remove");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel layouts");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug <signactions|clearstate|trigger>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel reload");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn list");
@@ -701,6 +726,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
         if (args.length == 1) {
             completions.add("debug");
+            completions.add("layouts");
             completions.add("place");
             completions.add("reload");
             completions.add("warn");

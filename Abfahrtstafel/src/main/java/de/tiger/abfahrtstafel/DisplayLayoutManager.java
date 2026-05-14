@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.Collections;
 
 public class DisplayLayoutManager {
 
@@ -48,13 +47,18 @@ public class DisplayLayoutManager {
             int widthBlocks = layoutSection.getInt("widthBlocks", 1);
             int heightBlocks = layoutSection.getInt("heightBlocks", 1);
             String background = layoutSection.getString("background", "#2B2D8D");
+            String description = layoutSection.getString("description", "");
+
+            DisplayDefaults defaults = loadDefaults(
+                    layoutSection.getConfigurationSection("defaults")
+            );
 
             List<DisplayElement> elements = new ArrayList<>();
             List<DisplaySection> sections = new ArrayList<>();
 
             // Alte Struktur weiterhin unterstützen
             if (layoutSection.isList("elements")) {
-                elements = parseElements(layoutSection.getMapList("elements"));
+                elements = parseElements(layoutSection.getMapList("elements"), defaults);
             }
 
             // Neue sections-Struktur
@@ -68,80 +72,11 @@ public class DisplayLayoutManager {
                     if (rawElementsObject instanceof List<?> rawElements) {
                         @SuppressWarnings("unchecked")
                         List<Map<?, ?>> elementMaps = (List<Map<?, ?>>) rawElements;
-                        sectionElements = parseElements(elementMaps);
+                        sectionElements = parseElements(elementMaps, defaults);
                     }
 
                     sections.add(new DisplaySection(when, sectionElements));
                 }
-            }
-
-
-            for (Map<?, ?> rawElement : layoutSection.getMapList("elements")) {
-                String type = getString(rawElement, "type", "text");
-                String value = getString(rawElement, "value", "");
-                int x = getInt(rawElement, "x", 0);
-                int y = getInt(rawElement, "y", 0);
-                String width = getString(rawElement, "width", "fill");
-                int height = getInt(rawElement, "height", 0);
-                String align = getString(rawElement, "align", "left");
-                String scroll = getString(rawElement, "scroll", "none");
-                int fontSize = getInt(rawElement, "fontSize", 14);
-                String color = getString(rawElement, "color", "#FFFFFF");
-                String elementBackground = getString(rawElement, "background", "");
-                int thickness = getInt(rawElement, "thickness", 1);
-                int rowHeight = getInt(rawElement, "rowHeight", 20);
-                int maxRows = getInt(rawElement, "maxRows", 10);
-                String showWhen = getString(rawElement, "showWhen", "always");
-                String source = getString(rawElement, "source", "platform");
-                List<DisplayColumn> columns = new ArrayList<>();
-
-                Object rawColumnsObject = rawElement.get("columns");
-
-                if (rawColumnsObject instanceof List<?> rawColumns) {
-                    for (Object rawColumnObject : rawColumns) {
-                        if (!(rawColumnObject instanceof Map<?, ?> rawColumn)) {
-                            continue;
-                        }
-
-                        String columnValue = getString(rawColumn, "value", "");
-                        int columnX = getInt(rawColumn, "x", 0);
-                        String columnWidth = getString(rawColumn, "width", "50");
-                        String columnAlign = getString(rawColumn, "align", "left");
-                        String columnColor = getString(rawColumn, "color", "#FFFFFF");
-                        int columnFontSize = getInt(rawColumn, "fontSize", fontSize);
-                        String columnScroll = getString(rawColumn, "scroll", "none");
-
-                        columns.add(new DisplayColumn(
-                                columnValue,
-                                columnX,
-                                columnWidth,
-                                columnAlign,
-                                columnColor,
-                                columnFontSize,
-                                columnScroll
-                        ));
-                    }
-                }
-
-                elements.add(new DisplayElement(
-                        type,
-                        value,
-                        x,
-                        y,
-                        width,
-                        height,
-                        align,
-                        scroll,
-                        fontSize,
-                        color,
-                        elementBackground,
-                        thickness,
-                        rowHeight,
-                        maxRows,
-                        columns,
-                        showWhen,
-                        source
-                ));
             }
 
             DisplayLayout layout = new DisplayLayout(
@@ -150,6 +85,8 @@ public class DisplayLayoutManager {
                     widthBlocks,
                     heightBlocks,
                     background,
+                    description,
+                    defaults,
                     elements,
                     sections
             );
@@ -204,7 +141,7 @@ public class DisplayLayoutManager {
         }
     }
 
-    private List<DisplayElement> parseElements(List<Map<?, ?>> rawElements) {
+    private List<DisplayElement> parseElements(List<Map<?, ?>> rawElements, DisplayDefaults defaults) {
         List<DisplayElement> elements = new ArrayList<>();
 
         for (Map<?, ?> rawElement : rawElements) {
@@ -215,9 +152,13 @@ public class DisplayLayoutManager {
             String width = getString(rawElement, "width", "fill");
             int height = getInt(rawElement, "height", 0);
             String align = getString(rawElement, "align", "left");
-            String scroll = getString(rawElement, "scroll", "none");
-            int fontSize = getInt(rawElement, "fontSize", 14);
-            String color = getString(rawElement, "color", "#FFFFFF");
+            String font = getString(rawElement, "font", defaults.getFont());
+            String scroll = getString(rawElement, "scroll", defaults.getScroll());
+            int fontSize = getInt(rawElement, "fontSize", defaults.getFontSize());
+            String color = getString(rawElement, "color", defaults.getColor());
+            String fontStyle = getString(rawElement, "fontStyle", defaults.getFontStyle());
+            String padding = getString(rawElement, "padding", defaults.getPadding());
+            String scrollSeparator = getString(rawElement, "scrollSeparator", defaults.getScrollSeparator());
             String elementBackground = getString(rawElement, "background", "");
             int thickness = getInt(rawElement, "thickness", 1);
             int rowHeight = getInt(rawElement, "rowHeight", 20);
@@ -239,9 +180,13 @@ public class DisplayLayoutManager {
                     int columnX = getInt(rawColumn, "x", 0);
                     String columnWidth = getString(rawColumn, "width", "50");
                     String columnAlign = getString(rawColumn, "align", "left");
-                    String columnColor = getString(rawColumn, "color", "#FFFFFF");
+                    String columnColor = getString(rawColumn, "color", color);
                     int columnFontSize = getInt(rawColumn, "fontSize", fontSize);
-                    String columnScroll = getString(rawColumn, "scroll", "none");
+                    String columnScroll = getString(rawColumn, "scroll", scroll);
+
+                    String columnFont = getString(rawColumn, "font", font);
+                    String columnFontStyle = getString(rawColumn, "fontStyle", fontStyle);
+                    String columnScrollSeparator = getString(rawColumn, "scrollSeparator", scrollSeparator);
 
                     columns.add(new DisplayColumn(
                             columnValue,
@@ -250,7 +195,10 @@ public class DisplayLayoutManager {
                             columnAlign,
                             columnColor,
                             columnFontSize,
-                            columnScroll
+                            columnScroll,
+                            columnFont,
+                            columnFontStyle,
+                            columnScrollSeparator
                     ));
                 }
             }
@@ -272,10 +220,32 @@ public class DisplayLayoutManager {
                     maxRows,
                     columns,
                     showWhen,
-                    source
+                    source,
+                    font,
+                    fontStyle,
+                    padding,
+                    scrollSeparator
             ));
         }
 
         return elements;
+    }
+
+    private DisplayDefaults loadDefaults(ConfigurationSection section) {
+        DisplayDefaults fallback = DisplayDefaults.defaultValues();
+
+        if (section == null) {
+            return fallback;
+        }
+
+        return new DisplayDefaults(
+                section.getString("font", fallback.getFont()),
+                section.getInt("fontSize", fallback.getFontSize()),
+                section.getString("color", fallback.getColor()),
+                section.getString("scroll", fallback.getScroll()),
+                section.getString("fontStyle", fallback.getFontStyle()),
+                section.getString("padding", fallback.getPadding()),
+                section.getString("scrollSeparator", fallback.getScrollSeparator())
+        );
     }
 }

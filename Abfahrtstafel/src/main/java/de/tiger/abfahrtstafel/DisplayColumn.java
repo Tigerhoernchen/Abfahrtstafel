@@ -9,9 +9,20 @@ public class DisplayColumn {
     private final String color;
     private final int fontSize;
     private final String scroll;
+    private final String font;
+    private final String fontStyle;
+    private final String scrollSeparator;
 
-    public DisplayColumn(String value, int x, String width, String align,
-                         String color, int fontSize, String scroll) {
+    public DisplayColumn(String value,
+                         int x,
+                         String width,
+                         String align,
+                         String color,
+                         int fontSize,
+                         String scroll,
+                         String font,
+                         String fontStyle,
+                         String scrollSeparator) {
         this.value = value;
         this.x = x;
         this.width = width;
@@ -19,6 +30,9 @@ public class DisplayColumn {
         this.color = color;
         this.fontSize = fontSize;
         this.scroll = scroll;
+        this.font = font;
+        this.fontStyle = fontStyle;
+        this.scrollSeparator = scrollSeparator;
     }
 
     public String getValue() {
@@ -47,5 +61,17 @@ public class DisplayColumn {
 
     public String getScroll() {
         return scroll;
+    }
+
+    public String getFont() {
+        return font;
+    }
+
+    public String getFontStyle() {
+        return fontStyle;
+    }
+
+    public String getScrollSeparator() {
+        return scrollSeparator;
     }
 }
