@@ -459,12 +459,34 @@ public class ScheduleManager {
                 boolean matchingStation = group.getParentStation().equalsIgnoreCase(stationName);
                 boolean matchingRailGroup = group.getName().equalsIgnoreCase(railGroupName);
 
-                if (!matchingStation || !matchingRailGroup || group.isFinalStop()) {
+                if (!matchingStation || !matchingRailGroup) {
                     continue;
                 }
 
                 String destination = findFinalDestination(groups);
                 String via = buildViaText(groups, i);
+
+                if (group.isFinalStop()) {
+                    boolean hasSound =
+                            !group.getArrivalPlatformSound().isBlank()
+                                    || !group.getArrivalTrainSound().isBlank();
+
+                    if (!hasSound) {
+                        continue;
+                    }
+
+                    return new ArrivalCandidate(
+                            0,
+                            group.getParentStation(),
+                            group.getName(),
+                            trainLine.getName(),
+                            LocalTime.now(),
+                            destination,
+                            via,
+                            0,
+                            group
+                    );
+                }
 
                 for (LocalTime departureTime : group.getDepartures()) {
                     if (isHiddenByStateOrTimeout(group.getParentStation(), group.getName(), trainLine.getName(), departureTime, now)) {

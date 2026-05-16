@@ -19,6 +19,7 @@ public class LayoutRenderer {
                        int canvasWidth,
                        int canvasHeight) {
 
+
         if (layout.getBackground() != null && !layout.getBackground().isEmpty()) {
             g.setColor(parseColor(layout.getBackground()));
             g.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -54,6 +55,10 @@ public class LayoutRenderer {
             return;
         }
 
+        if (!isVisibleForBlink(element.isBlink(), element.getBlinkTicks(), textScroll)) {
+            return;
+        }
+
         if ("text".equalsIgnoreCase(element.getType()) || "warning".equalsIgnoreCase(element.getType())) {
             drawText(g, element, placeholders, textScroll, canvasWidth);
         }
@@ -66,7 +71,7 @@ public class LayoutRenderer {
             drawRectangle(g, element, canvasWidth, canvasHeight);
         }
 
-        if ("list".equalsIgnoreCase(element.getType())) {
+        if ("list".equalsIgnoreCase(element.getType()) || "table".equalsIgnoreCase(element.getType())) {
             List<Departure> listData = departures;
 
             if ("stationDepartures".equalsIgnoreCase(element.getSource())) {
@@ -119,6 +124,7 @@ public class LayoutRenderer {
             case "has_via" -> hasVia;
             case "no_via" -> !hasVia;
             case "on_arrival" -> onArrival;
+            case "no_arrival" -> !onArrival;
             default -> true;
         };
     }
@@ -142,9 +148,21 @@ public class LayoutRenderer {
         int x = element.getX();
         int y = element.getY();
 
-        int width = "fill".equalsIgnoreCase(element.getWidth())
-                ? canvasWidth - x
-                : parseIntSafe(element.getWidth(), 50);
+        int[] padding = parsePadding(element.getPadding());
+
+        int width;
+
+        if ("fill".equalsIgnoreCase(element.getWidth())) {
+            width = canvasWidth - x;
+        } else if ("auto".equalsIgnoreCase(element.getWidth())) {
+            FontMetrics metrics = g.getFontMetrics();
+            String textForMeasure = replacePlaceholders(element.getValue(), placeholders);
+            width = metrics.stringWidth(textForMeasure)
+                    + padding[1]
+                    + padding[3];
+        } else {
+            width = parseIntSafe(element.getWidth(), 50);
+        }
 
         drawTextInBox(
                 g,
@@ -175,21 +193,57 @@ public class LayoutRenderer {
             return;
         }
 
+        if (element.getLimit() > 0 && departures.size() > element.getLimit()) {
+            departures = new java.util.ArrayList<>(
+                    departures.subList(0, element.getLimit())
+            );
+        }
+
+        departures = sortDepartures(departures, element.getSortBy());
+
         int startX = element.getX();
         int startY = element.getY();
-        int rowHeight = element.getRowHeight() <= 0 ? 20 : element.getRowHeight();
-        int maxRows = element.getMaxRows() <= 0 ? departures.size() : element.getMaxRows();
+        int rowHeight;
 
+        if ("auto".equalsIgnoreCase(element.getRowHeight())) {
+            rowHeight = calculateAutoRowHeight(element);
+        } else {
+            rowHeight = parseIntSafe(element.getRowHeight(), 20);
+        }
+
+        rowHeight = Math.max(rowHeight, element.getMinRowHeight());
+        boolean table = "table".equalsIgnoreCase(element.getType());
+        int headerHeight = table ? rowHeight : 0;
+        int dataStartY = startY + headerHeight;
+        if (table) {drawTableHeader(g, element, startX, startY, rowHeight, canvasWidth);}
+        int maxRows = element.getMaxRows() <= 0 ? departures.size() : element.getMaxRows();
         int availableHeight = element.getHeight() > 0
-                ? element.getHeight()
-                : canvasHeight - startY;
+                ? element.getHeight() - headerHeight
+                : canvasHeight - dataStartY;
 
         int rowsByHeight = availableHeight / rowHeight;
         int rows = Math.min(Math.min(maxRows, rowsByHeight), departures.size());
 
         for (int i = 0; i < rows; i++) {
             Departure departure = departures.get(i);
-            int rowY = startY + (i * rowHeight);
+
+            int rowTop = dataStartY + (i * rowHeight);
+            int textY = rowTop + 16;
+
+            String rowBackground = getRowBackground(element, i);
+
+            if (rowBackground != null && !rowBackground.isBlank()) {
+                int listWidth;
+
+                if ("fill".equalsIgnoreCase(element.getWidth())) {
+                    listWidth = canvasWidth - startX;
+                } else {
+                    listWidth = parseIntSafe(element.getWidth(), canvasWidth - startX);
+                }
+
+                g.setColor(parseColor(rowBackground));
+                g.fillRect(startX, rowTop, listWidth, rowHeight);
+            }
 
             Map<String, String> rowPlaceholders = new java.util.HashMap<>(basePlaceholders);
 
@@ -201,6 +255,18 @@ public class LayoutRenderer {
             rowPlaceholders.put("destination", departure.getDestination());
             rowPlaceholders.put("via", departure.getVia());
             rowPlaceholders.put("track", departure.getPlatform());
+
+            boolean rowOnArrival = AbfahrtstafelPlugin
+                    .getInstance()
+                    .getRuntimeStateManager()
+                    .isArrival(
+                            basePlaceholders.getOrDefault("station", ""),
+                            departure.getPlatform(),
+                            departure.getLine(),
+                            departure.getTime()
+                    );
+
+            rowPlaceholders.put("onArrival", String.valueOf(rowOnArrival));
 
             List<WarnMessage> rowWarnings = AbfahrtstafelPlugin
                     .getInstance()
@@ -214,12 +280,45 @@ public class LayoutRenderer {
             rowPlaceholders.put("warnings", buildWarningText(rowWarnings));
 
             if (element.getColumns() == null || element.getColumns().isEmpty()) {
-                drawDefaultListRow(g, rowPlaceholders, startX, rowY, textScroll, canvasWidth);
+                drawDefaultListRow(g, rowPlaceholders, startX, textY, textScroll, canvasWidth);
                 continue;
             }
 
             for (DisplayColumn column : element.getColumns()) {
-                drawColumn(g, column, rowPlaceholders, startX, rowY, textScroll, canvasWidth);
+                int columnIndex = element.getColumns().indexOf(column);
+
+                int columnX;
+                int columnWidth = -1;
+
+                if ("table".equalsIgnoreCase(element.getType())) {
+                    columnX = getTableColumnX(
+                            element,
+                            columnIndex,
+                            startX,
+                            canvasWidth
+                    );
+
+                    columnWidth = getTableColumnWidth(
+                            element,
+                            column,
+                            startX,
+                            canvasWidth
+                    );
+                } else {
+                    columnX = startX + column.getX();
+                }
+
+                drawColumn(
+                        g,
+                        column,
+                        rowPlaceholders,
+                        departure,
+                        columnX,
+                        columnWidth,
+                        textY,
+                        textScroll,
+                        canvasWidth
+                );
             }
         }
     }
@@ -227,26 +326,48 @@ public class LayoutRenderer {
     private void drawColumn(Graphics2D g,
                             DisplayColumn column,
                             Map<String, String> placeholders,
+                            Departure departure,
                             int baseX,
+                            int forcedWidth,
                             int rowY,
                             int textScroll,
                             int canvasWidth) {
 
-        String text = replacePlaceholders(column.getValue(), placeholders);
+        List<Departure> rowDepartures = java.util.List.of(departure);
+
+        if (!shouldRender(column.getShowWhen(), placeholders, rowDepartures)) {
+            return;
+        }
+
+        if (!isVisibleForBlink(column.isBlink(), column.getBlinkTicks(), textScroll)) {
+            return;
+        }
+
+        DisplayColumn renderColumn = resolveColumnVariant(column, placeholders, rowDepartures, textScroll);
+        String text = replacePlaceholders(renderColumn.getValue(), placeholders);
 
         if (text == null || text.isEmpty()) {
             return;
         }
 
-        Font font = createFont(column.getFont(), column.getFontStyle(), column.getFontSize());
+        Font font = createFont(renderColumn.getFont(), renderColumn.getFontStyle(), renderColumn.getFontSize());
         g.setFont(font);
         g.setColor(parseColor(column.getColor()));
 
-        int x = baseX + column.getX();
+        int x = baseX;
 
-        int width = "fill".equalsIgnoreCase(column.getWidth())
-                ? canvasWidth - x
-                : parseIntSafe(column.getWidth(), 50);
+        int width;
+
+        if (forcedWidth > 0) {
+            width = forcedWidth;
+        } else if ("fill".equalsIgnoreCase(column.getWidth())) {
+            width = canvasWidth - x;
+        } else if ("auto".equalsIgnoreCase(column.getWidth())) {
+            FontMetrics metrics = g.getFontMetrics();
+            width = metrics.stringWidth(text);
+        } else {
+            width = parseIntSafe(column.getWidth(), 50);
+        }
 
         drawTextInBox(
                 g,
@@ -254,14 +375,14 @@ public class LayoutRenderer {
                 x,
                 rowY,
                 width,
-                column.getFontSize(),
-                column.getAlign(),
-                column.getScroll(),
+                renderColumn.getFontSize(),
+                renderColumn.getAlign(),
+                renderColumn.getScroll(),
                 textScroll,
-                null,
-                column.getColor(),
-                column.getScrollSeparator(),
-                "0"
+                renderColumn.getBackground(),
+                renderColumn.getColor(),
+                renderColumn.getScrollSeparator(),
+                renderColumn.getPadding()
         );
     }
 
@@ -326,7 +447,7 @@ public class LayoutRenderer {
                     x,
                     y - metrics.getAscent() - padTop,
                     width,
-                    metrics.getHeight() + padTop + padBottom
+                    metrics.getAscent() + metrics.getDescent() + padTop + padBottom
             );
 
             g.setColor(parseColor(textColor));
@@ -346,7 +467,12 @@ public class LayoutRenderer {
         }
 
         Shape oldClip = g.getClip();
-        g.setClip(innerX, y - fontSize, innerWidth, fontSize + 8);
+        g.setClip(
+                innerX,
+                y - metrics.getAscent() - padTop,
+                innerWidth,
+                metrics.getAscent() + metrics.getDescent() + padTop + padBottom
+        );
 
         if (scrollMode == null) {
             scrollMode = "none";
@@ -474,8 +600,7 @@ public class LayoutRenderer {
         return "+" + departure.getDelayMinutes();
     }
 
-    private String replacePlaceholders(String text,
-                                       Map<String, String> placeholders) {
+    private String replacePlaceholders(String text, Map<String, String> placeholders) {
         String result = text;
 
         while (true) {
@@ -631,4 +756,258 @@ public class LayoutRenderer {
 
         return result;
     }
+
+    private int calculateAutoRowHeight(DisplayElement element) {
+        int maxHeight = 0;
+
+        if (element.getColumns() == null || element.getColumns().isEmpty()) {
+            return element.getMinRowHeight();
+        }
+
+        for (DisplayColumn column : element.getColumns()) {
+            int[] padding = parsePadding(column.getPadding());
+
+            int height = column.getFontSize()
+                    + padding[0]
+                    + padding[2]
+                    + 4;
+
+            if (height > maxHeight) {
+                maxHeight = height;
+            }
+        }
+
+        return Math.max(maxHeight, element.getMinRowHeight());
+    }
+
+    private boolean isVisibleForBlink(boolean blink, int blinkTicks, int textScroll) {
+        if (!blink) {
+            return true;
+        }
+
+        if (blinkTicks <= 0) {
+            blinkTicks = 20;
+        }
+
+        return (textScroll / blinkTicks) % 2 == 0;
+    }
+
+    private String getRowBackground(DisplayElement element, int rowIndex) {
+        String zebra = element.getZebra();
+
+        if (zebra != null && !zebra.isBlank()) {
+            String[] colors = zebra.split(",");
+
+            if (colors.length > 0) {
+                String color = colors[rowIndex % colors.length].trim();
+
+                if (!color.isBlank()) {
+                    return color;
+                }
+            }
+        }
+
+        return element.getBackground();
+    }
+
+    private List<Departure> sortDepartures(List<Departure> departures, String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return departures;
+        }
+
+        String[] parts = sortBy.trim().split("\\s+");
+        String field = parts[0].toLowerCase();
+        boolean desc = parts.length > 1 && "desc".equalsIgnoreCase(parts[1]);
+
+        java.util.Comparator<Departure> comparator = switch (field) {
+            case "time" -> java.util.Comparator.comparingLong(this::getDepartureSortMinutes);
+            case "expected" -> java.util.Comparator.comparing(this::getExpectedSortValue);
+            case "delayminutes", "delay" -> java.util.Comparator.comparingLong(Departure::getDelayMinutes);
+            case "line" -> java.util.Comparator.comparing(Departure::getLine, String.CASE_INSENSITIVE_ORDER);
+            case "destination" -> java.util.Comparator.comparing(Departure::getDestination, String.CASE_INSENSITIVE_ORDER);
+            case "via" -> java.util.Comparator.comparing(Departure::getVia, String.CASE_INSENSITIVE_ORDER);
+            case "track", "platform" -> java.util.Comparator.comparing(Departure::getPlatform, String.CASE_INSENSITIVE_ORDER);
+            default -> null;
+        };
+
+        if (comparator == null) {
+            return departures;
+        }
+
+        if (desc) {
+            comparator = comparator.reversed();
+        }
+
+        return departures.stream()
+                .sorted(comparator)
+                .toList();
+    }
+
+    private String getExpectedSortValue(Departure departure) {
+        if (departure.getDelayMinutes() <= 0) {
+            return departure.getTime();
+        }
+
+        return java.time.LocalTime.parse(departure.getTime())
+                .plusMinutes(departure.getDelayMinutes())
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    private DisplayColumn resolveColumnVariant(DisplayColumn column,
+                                               Map<String, String> placeholders,
+                                               List<Departure> rowDepartures,
+                                               int textScroll) {
+
+        if (column.getVariants() == null || column.getVariants().isEmpty()) {
+            return column;
+        }
+
+        for (DisplayColumn variant : column.getVariants()) {
+            if (!shouldRender(variant.getShowWhen(), placeholders, rowDepartures)) {
+                continue;
+            }
+
+            if (!isVisibleForBlink(variant.isBlink(), variant.getBlinkTicks(), textScroll)) {
+                continue;
+            }
+
+            return variant;
+        }
+
+        return column;
+    }
+
+    private void drawTableHeader(Graphics2D g,
+                                 DisplayElement element,
+                                 int startX,
+                                 int startY,
+                                 int rowHeight,
+                                 int canvasWidth) {
+
+        if (element.getColumns() == null || element.getColumns().isEmpty()) {
+            return;
+        }
+
+        for (DisplayColumn column : element.getColumns()) {
+            String header = column.getHeader();
+
+            if (header == null || header.isBlank()) {
+                continue;
+            }
+
+            Font font = createFont(
+                    column.getFont(),
+                    "bold",
+                    column.getFontSize()
+            );
+
+            g.setFont(font);
+
+            int columnIndex = element.getColumns().indexOf(column);
+
+            int x = getTableColumnX(
+                    element,
+                    columnIndex,
+                    startX,
+                    canvasWidth
+            );
+
+            int width = getTableColumnWidth(
+                    element,
+                    column,
+                    startX,
+                    canvasWidth
+            );
+
+            drawTextInBox(
+                    g,
+                    header,
+                    x,
+                    startY + 16,
+                    width,
+                    column.getFontSize(),
+                    column.getAlign(),
+                    "none",
+                    0,
+                    column.getBackground(),
+                    column.getColor(),
+                    column.getScrollSeparator(),
+                    column.getPadding()
+            );
+        }
+    }
+
+    private int getTableColumnX(DisplayElement element,
+                                int columnIndex,
+                                int startX,
+                                int canvasWidth) {
+
+        if (element.getColumns() == null || columnIndex <= 0) {
+            return startX;
+        }
+
+        int x = startX;
+
+        for (int i = 0; i < columnIndex; i++) {
+            x += getTableColumnWidth(
+                    element,
+                    element.getColumns().get(i),
+                    startX,
+                    canvasWidth
+            );
+        }
+
+        return x;
+    }
+
+    private int getTableColumnWidth(DisplayElement element,
+                                    DisplayColumn targetColumn,
+                                    int startX,
+                                    int canvasWidth) {
+
+        if (!"fill".equalsIgnoreCase(targetColumn.getWidth())) {
+            return parseIntSafe(targetColumn.getWidth(), 50);
+        }
+
+        int tableWidth;
+
+        if ("fill".equalsIgnoreCase(element.getWidth())) {
+            tableWidth = canvasWidth - startX;
+        } else {
+            tableWidth = parseIntSafe(
+                    element.getWidth(),
+                    canvasWidth - startX
+            );
+        }
+
+        int fixedWidth = 0;
+
+        for (DisplayColumn column : element.getColumns()) {
+            if (column == targetColumn) {
+                continue;
+            }
+
+            if ("fill".equalsIgnoreCase(column.getWidth())) {
+                continue;
+            }
+
+            fixedWidth += parseIntSafe(column.getWidth(), 50);
+        }
+
+        return Math.max(20, tableWidth - fixedWidth);
+    }
+
+    private long getDepartureSortMinutes(Departure departure) {
+        java.time.LocalTime now = java.time.LocalTime.now();
+        java.time.LocalTime departureTime = java.time.LocalTime.parse(departure.getTime());
+
+        long minutes = java.time.Duration.between(now, departureTime).toMinutes();
+
+        if (minutes < 0) {
+            minutes += 24 * 60;
+        }
+
+        return minutes;
+    }
+
 }

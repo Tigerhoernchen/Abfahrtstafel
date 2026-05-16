@@ -396,6 +396,23 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return true;
             }
 
+            if (debugTarget.equals("fonts")) {
+                String[] fonts = java.awt.GraphicsEnvironment
+                        .getLocalGraphicsEnvironment()
+                        .getAvailableFontFamilyNames();
+
+                sender.sendMessage(ChatColor.GREEN + "Verfügbare Schriftarten:");
+
+                for (String font : fonts) {
+                    sender.sendMessage(ChatColor.GRAY + "- " + font);
+                }
+
+                sender.sendMessage(ChatColor.YELLOW
+                        + "Anzahl: " + fonts.length);
+
+                return true;
+            }
+
             if (debugTarget.equals("soundbox")) {
                 if (!(sender instanceof Player)) {
                     sender.sendMessage("Dieser Befehl kann nur im Spiel benutzt werden.");
@@ -813,7 +830,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Gleis> <Station>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel remove");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel layouts");
-        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug <signactions|soundbox|clearstate|trigger>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug <signactions|soundbox|fonts|clearstate|trigger>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel debug soundbox <Gleis> <Bahnhof>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel reload");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox create <Gleis> <Bahnhof>");
@@ -902,6 +919,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 completions.add("signactions");
                 completions.add("soundbox");
                 completions.add("trigger");
+                completions.add("fonts");
                 completions.add("clearstate");
                 return filterCompletions(completions, args[1]);
             }
@@ -972,6 +990,17 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
             completions.addAll(scheduleManager.getRailGroupNames());
             return filterCompletions(completions, args[2]);
+        }
+
+        if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("debug")) {
+                completions.add("signactions");
+                completions.add("soundbox");
+                completions.add("trigger");
+                completions.add("clearstate");
+                completions.add("fonts");
+                return filterCompletions(completions, args[1]);
+            }
         }
 
         if (args.length >= 4

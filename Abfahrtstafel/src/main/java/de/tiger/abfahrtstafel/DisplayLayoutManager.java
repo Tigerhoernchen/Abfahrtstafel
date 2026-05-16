@@ -160,11 +160,17 @@ public class DisplayLayoutManager {
             String padding = getString(rawElement, "padding", defaults.getPadding());
             String scrollSeparator = getString(rawElement, "scrollSeparator", defaults.getScrollSeparator());
             String elementBackground = getString(rawElement, "background", "");
+            String zebra = getString(rawElement, "zebra", "");
             int thickness = getInt(rawElement, "thickness", 1);
-            int rowHeight = getInt(rawElement, "rowHeight", 20);
+            String rowHeight = getString(rawElement, "rowHeight", "20");
+            int minRowHeight = getInt(rawElement, "minRowHeight", 20);
             int maxRows = getInt(rawElement, "maxRows", 10);
             String showWhen = getString(rawElement, "showWhen", "");
             String source = getString(rawElement, "source", "");
+            String sortBy = getString(rawElement, "sortBy", "");
+            int limit = getInt(rawElement, "limit", 0);
+            boolean blink = Boolean.parseBoolean(getString(rawElement, "blink", "false"));
+            int blinkTicks = getInt(rawElement, "blinkTicks", 20);
 
             List<DisplayColumn> columns = new ArrayList<>();
 
@@ -177,16 +183,69 @@ public class DisplayLayoutManager {
                     }
 
                     String columnValue = getString(rawColumn, "value", "");
+                    String columnHeader = getString(rawColumn, "header", "");
+                    List<DisplayColumn> columnVariants = new ArrayList<>();
                     int columnX = getInt(rawColumn, "x", 0);
                     String columnWidth = getString(rawColumn, "width", "50");
                     String columnAlign = getString(rawColumn, "align", "left");
                     String columnColor = getString(rawColumn, "color", color);
                     int columnFontSize = getInt(rawColumn, "fontSize", fontSize);
                     String columnScroll = getString(rawColumn, "scroll", scroll);
-
                     String columnFont = getString(rawColumn, "font", font);
                     String columnFontStyle = getString(rawColumn, "fontStyle", fontStyle);
                     String columnScrollSeparator = getString(rawColumn, "scrollSeparator", scrollSeparator);
+                    String columnBackground = getString(rawColumn, "background", "");
+                    String columnPadding = getString(rawColumn, "padding", "0");
+                    String columnShowWhen = getString(rawColumn, "showWhen", "");
+                    boolean columnBlink = Boolean.parseBoolean(getString(rawColumn, "blink", "false"));
+                    int columnBlinkTicks = getInt(rawColumn, "blinkTicks", 20);
+
+                    Object rawVariantsObject = rawColumn.get("variants");
+
+                    if (rawVariantsObject instanceof List<?> rawVariants) {
+                        for (Object rawVariantObject : rawVariants) {
+                            if (!(rawVariantObject instanceof Map<?, ?> rawVariant)) {
+                                continue;
+                            }
+
+                            String variantValue = getString(rawVariant, "value", "");
+                            String variantAlign = getString(rawVariant, "align", columnAlign);
+                            String variantColor = getString(rawVariant, "color", columnColor);
+                            int variantFontSize = getInt(rawVariant, "fontSize", columnFontSize);
+                            String variantScroll = getString(rawVariant, "scroll", columnScroll);
+                            String variantFont = getString(rawVariant, "font", columnFont);
+                            String variantFontStyle = getString(rawVariant, "fontStyle", columnFontStyle);
+                            String variantScrollSeparator = getString(rawVariant, "scrollSeparator", columnScrollSeparator);
+                            String variantBackground = getString(rawVariant, "background", columnBackground);
+                            String variantPadding = getString(rawVariant, "padding", columnPadding);
+                            String variantShowWhen = getString(rawVariant, "showWhen", "");
+                            boolean variantBlink = Boolean.parseBoolean(
+                                    getString(rawVariant, "blink", "false")
+                            );
+                            int variantBlinkTicks = getInt(rawVariant, "blinkTicks", columnBlinkTicks);
+
+                            columnVariants.add(new DisplayColumn(
+                                    variantValue,
+                                    columnX,
+                                    columnWidth,
+                                    variantAlign,
+                                    variantColor,
+                                    variantFontSize,
+                                    variantScroll,
+                                    variantFont,
+                                    variantFontStyle,
+                                    variantScrollSeparator,
+                                    variantBackground,
+                                    variantPadding,
+                                    variantShowWhen,
+                                    variantBlink,
+                                    variantBlinkTicks,
+                                    "",
+                                    java.util.Collections.emptyList()
+                            ));
+                        }
+                    }
+
 
                     columns.add(new DisplayColumn(
                             columnValue,
@@ -198,7 +257,14 @@ public class DisplayLayoutManager {
                             columnScroll,
                             columnFont,
                             columnFontStyle,
-                            columnScrollSeparator
+                            columnScrollSeparator,
+                            columnBackground,
+                            columnPadding,
+                            columnShowWhen,
+                            columnBlink,
+                            columnBlinkTicks,
+                            columnHeader,
+                            columnVariants
                     ));
                 }
             }
@@ -215,16 +281,22 @@ public class DisplayLayoutManager {
                     fontSize,
                     color,
                     elementBackground,
+                    zebra,
                     thickness,
                     rowHeight,
+                    minRowHeight,
                     maxRows,
                     columns,
                     showWhen,
                     source,
+                    sortBy,
+                    limit,
                     font,
                     fontStyle,
                     padding,
-                    scrollSeparator
+                    scrollSeparator,
+                    blink,
+                    blinkTicks
             ));
         }
 

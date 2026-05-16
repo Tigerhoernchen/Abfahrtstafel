@@ -53,15 +53,17 @@ public class SignActionAnkunft extends SignAction {
             return;
         }
 
-        AbfahrtstafelPlugin
-                .getInstance()
-                .getRuntimeStateManager()
-                .setArrival(
-                        candidate.station(),
-                        candidate.railGroup(),
-                        candidate.line(),
-                        candidate.departureTime()
-                );
+        if (!candidate.orderedRailGroup().isFinalStop()) {
+            AbfahrtstafelPlugin
+                    .getInstance()
+                    .getRuntimeStateManager()
+                    .setArrival(
+                            candidate.station(),
+                            candidate.railGroup(),
+                            candidate.line(),
+                            candidate.departureTime()
+                    );
+        }
 
         String platformSound = candidate
                 .orderedRailGroup()
