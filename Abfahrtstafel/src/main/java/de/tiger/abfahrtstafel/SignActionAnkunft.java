@@ -36,6 +36,10 @@ public class SignActionAnkunft extends SignAction {
         String[] parts = stationAndRail.split(":", 2);
         String station = parts[0].trim();
         String railGroup = parts[1].trim();
+        station = AbfahrtstafelPlugin
+                .getInstance()
+                .getStationAliasManager()
+                .resolve(station);
 
         ScheduleManager.ArrivalCandidate candidate = AbfahrtstafelPlugin
                 .getInstance()

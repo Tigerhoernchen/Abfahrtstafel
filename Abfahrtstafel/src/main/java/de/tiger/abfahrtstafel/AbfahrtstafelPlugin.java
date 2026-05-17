@@ -30,6 +30,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     private DisplayLayoutManager displayLayoutManager;
     private SoundManager soundManager;
     private SoundCategory announcementSoundCategory = SoundCategory.MASTER;
+    private StationAliasManager stationAliasManager;
 
     private final SignActionAbfahrt signActionAbfahrt = new SignActionAbfahrt();
     private final SignActionAnkunft signActionAnkunft = new SignActionAnkunft();
@@ -49,6 +50,9 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         loadAnnouncementSoundCategory();
 
         runtimeStateManager = new RuntimeStateManager();
+
+        stationAliasManager = new StationAliasManager(this);
+        stationAliasManager.load();
 
         displayLayoutManager = new DisplayLayoutManager(this);
         displayLayoutManager.load();
@@ -145,6 +149,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
             reloadConfig();
             loadAnnouncementSoundCategory();
+            stationAliasManager.load();
             scheduleManager.load();
             warningManager.load();
             displayLayoutManager.load();
@@ -238,6 +243,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             String[] parts = stationAndRail.split(":", 2);
             String station = parts[0].trim();
             String railGroup = parts[1].trim();
+            station = stationAliasManager.resolve(station);
 
             boolean success = scheduleManager.processNextDeparture(station, railGroup);
 
@@ -293,7 +299,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 }
 
                 String railGroup = args[2];
-                String station = joinArgs(args, 3);
+                String station = stationAliasManager.resolve(joinArgs(args, 3));
 
                 SoundBox box = soundManager.createSoundBox(station, railGroup, player.getLocation());
 
@@ -376,6 +382,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 String[] parts = stationAndRail.split(":", 2);
                 String station = parts[0].trim();
                 String railGroup = parts[1].trim();
+                station = stationAliasManager.resolve(station);
 
                 boolean success = scheduleManager.processNextDeparture(station, railGroup);
 
@@ -426,7 +433,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 }
 
                 String railGroup = args[2];
-                String station = joinArgs(args, 3);
+                String station = stationAliasManager.resolve(joinArgs(args, 3));
 
                 soundManager.playPlatformSound(
                         station,
@@ -490,7 +497,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             }
 
             railGroup = args[3];
-            station = joinArgs(args, 4);
+            station = stationAliasManager.resolve(joinArgs(args, 4));
         } else if (displayType.equalsIgnoreCase("station")) {
             if (args.length < 4) {
                 sender.sendMessage(ChatColor.RED + "Nutzung: /abfahrtstafel place "
@@ -498,7 +505,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                 return true;
             }
 
-            station = joinArgs(args, 3);
+            station = stationAliasManager.resolve(joinArgs(args, 3));
         } else {
             sender.sendMessage(ChatColor.RED + "Unbekannter displayType im Layout: " + displayType);
             return true;
@@ -1058,5 +1065,9 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         }
 
         return result;
+    }
+
+    public StationAliasManager getStationAliasManager() {
+        return stationAliasManager;
     }
 }

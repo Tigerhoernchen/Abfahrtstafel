@@ -252,6 +252,7 @@ public class LayoutRenderer {
             rowPlaceholders.put("expected", getExpectedTime(departure));
             rowPlaceholders.put("delay", getDelayText(departure));
             rowPlaceholders.put("delayMinutes", String.valueOf(departure.getDelayMinutes()));
+            rowPlaceholders.put("minutes", String.valueOf(calculateMinutesUntil(departure)));
             rowPlaceholders.put("destination", departure.getDestination());
             rowPlaceholders.put("via", departure.getVia());
             rowPlaceholders.put("track", departure.getPlatform());
@@ -1008,6 +1009,26 @@ public class LayoutRenderer {
         }
 
         return minutes;
+    }
+
+    private long calculateMinutesUntil(Departure departure) {
+        try {
+            java.time.LocalTime now = java.time.LocalTime.now();
+            java.time.LocalTime departureTime =
+                    java.time.LocalTime.parse(departure.getTime());
+
+            long minutes = java.time.Duration
+                    .between(now, departureTime)
+                    .toMinutes();
+
+            if (minutes < 0) {
+                minutes += 24 * 60;
+            }
+
+            return Math.max(0, minutes);
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
 }

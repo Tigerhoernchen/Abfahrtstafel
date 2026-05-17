@@ -32,6 +32,10 @@ public class SignActionAbfahrt extends SignAction {
         String[] parts = stationAndRail.split(":", 2);
         String station = parts[0].trim();
         String railGroup = parts[1].trim();
+        station = AbfahrtstafelPlugin
+                .getInstance()
+                .getStationAliasManager()
+                .resolve(station);
 
         boolean success = AbfahrtstafelPlugin
                 .getInstance()

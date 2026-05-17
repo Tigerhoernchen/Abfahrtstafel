@@ -9,6 +9,7 @@ de\tiger\abfahrtstafel\SelectionManager.class
 de\tiger\abfahrtstafel\SoundManager.class
 de\tiger\abfahrtstafel\ScheduleManager$DepartureCandidate.class
 de\tiger\abfahrtstafel\OrderedRailGroup.class
+de\tiger\abfahrtstafel\StationAliasManager.class
 de\tiger\abfahrtstafel\RuntimeStateManager$ArrivalState.class
 de\tiger\abfahrtstafel\RuntimeStateManager.class
 de\tiger\abfahrtstafel\LayoutRenderer.class
