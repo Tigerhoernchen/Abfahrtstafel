@@ -1,3 +1,8 @@
+> [!note]
+> Dieses Plugin dient zum eigenen Zweck.<br>
+> Es könnten immer wieder Änderungen kommen, die das aktualisieren eigener Konfisdateien anfordert.<br<
+> Das Plugin wurde mithilfe von KI erstellt.<br>
+
 # Abfahrtstafel Plugin – Vollständige Dokumentation
 
 ## Inhaltsverzeichnis
