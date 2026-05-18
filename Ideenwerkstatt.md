@@ -3,6 +3,7 @@
 - Automatisierte Abfahrt
 - Automatisierte Abfahrt: Zug genauer definieren. (Tag Linie + Abfahrtszeit)
 - Wiki mal ordentlich schreiben
+- Durchsichtigkeit Backgrounds usw.
 ```
 
 ### Fix für die Zukunft
