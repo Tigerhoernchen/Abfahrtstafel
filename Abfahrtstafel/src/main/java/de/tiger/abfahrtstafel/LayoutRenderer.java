@@ -662,6 +662,26 @@ public class LayoutRenderer {
 
     private Color parseColor(String colorString) {
         try {
+            if (colorString == null || colorString.isBlank()) {
+                return Color.WHITE;
+            }
+
+            if (colorString.startsWith("#")) {
+                String hex = colorString.substring(1);
+
+                // #AARRGGBB (mit Transparenz)
+                if (hex.length() == 8) {
+                    long value = Long.parseLong(hex, 16);
+                    return new Color((int) value, true);
+                }
+
+                // #RRGGBB (klassisch, vollständig deckend)
+                if (hex.length() == 6) {
+                    return Color.decode(colorString);
+                }
+            }
+
+            // Fallback für andere Formate
             return Color.decode(colorString);
         } catch (Exception e) {
             return Color.WHITE;

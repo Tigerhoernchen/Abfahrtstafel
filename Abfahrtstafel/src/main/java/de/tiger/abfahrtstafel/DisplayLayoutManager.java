@@ -48,6 +48,7 @@ public class DisplayLayoutManager {
             int heightBlocks = layoutSection.getInt("heightBlocks", 1);
             String background = layoutSection.getString("background", "#2B2D8D");
             String description = layoutSection.getString("description", "");
+            boolean invisibleFrames = layoutSection.getBoolean("invisibleFrames", false);
 
             DisplayDefaults defaults = loadDefaults(
                     layoutSection.getConfigurationSection("defaults")
@@ -88,7 +89,8 @@ public class DisplayLayoutManager {
                     description,
                     defaults,
                     elements,
-                    sections
+                    sections,
+                    invisibleFrames
             );
 
             layouts.put(layoutName.toLowerCase(), layout);

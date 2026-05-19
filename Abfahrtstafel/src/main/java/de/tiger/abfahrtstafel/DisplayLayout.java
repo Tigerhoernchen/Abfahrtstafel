@@ -12,6 +12,7 @@ public class DisplayLayout {
     private final List<DisplaySection> sections;
     private final String description;
     private final DisplayDefaults defaults;
+    private final boolean invisibleFrames;
 
     public DisplayLayout(String name,
                          String displayType,
@@ -21,7 +22,8 @@ public class DisplayLayout {
                          String description,
                          DisplayDefaults defaults,
                          List<DisplayElement> elements,
-                         List<DisplaySection> sections) {
+                         List<DisplaySection> sections,
+                         boolean invisibleFrames) {
         this.name = name;
         this.displayType = displayType;
         this.widthBlocks = widthBlocks;
@@ -31,6 +33,7 @@ public class DisplayLayout {
         this.defaults = defaults;
         this.elements = elements;
         this.sections = sections;
+        this.invisibleFrames = invisibleFrames;
     }
 
     public String getName() {
@@ -67,5 +70,9 @@ public class DisplayLayout {
 
     public DisplayDefaults getDefaults() {
         return defaults;
+    }
+
+    public boolean isInvisibleFrames() {
+        return invisibleFrames;
     }
 }

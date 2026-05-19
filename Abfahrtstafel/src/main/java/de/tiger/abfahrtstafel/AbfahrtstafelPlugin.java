@@ -513,7 +513,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
         ItemStack item = createDisplayItem(displayType, station, railGroup, layoutName);
 
-        int placed = placeLayoutFrames(player, item, glow, layout.getWidthBlocks(), layout.getHeightBlocks());
+        int placed = placeLayoutFrames(player, item, glow, layout.getWidthBlocks(), layout.getHeightBlocks(), layout.isInvisibleFrames());
 
         if (placed <= 0) {
             sender.sendMessage(ChatColor.RED + "Display konnte nicht platziert werden.");
@@ -548,7 +548,8 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
                                   ItemStack item,
                                   boolean glow,
                                   int widthBlocks,
-                                  int heightBlocks) {
+                                  int heightBlocks,
+                                  boolean invisibleFrames) {
 
         Block targetBlock = player.getTargetBlockExact(10);
 
@@ -614,6 +615,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             frame.setItem(item.clone(), false);
             frame.setFixed(true);
             frame.setVisible(true);
+            frame.setInvisible(invisibleFrames);
 
             placed++;
         }

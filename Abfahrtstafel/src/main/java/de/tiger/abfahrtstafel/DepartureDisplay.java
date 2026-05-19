@@ -183,8 +183,12 @@ public class DepartureDisplay extends MapDisplay {
             }
         }
 
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
+
+        g.setComposite(java.awt.AlphaComposite.Clear);
+        g.fillRect(0, 0, width, height);
+        g.setComposite(java.awt.AlphaComposite.SrcOver);
 
         g.setRenderingHint(
                 RenderingHints.KEY_TEXT_ANTIALIASING,
@@ -203,6 +207,7 @@ public class DepartureDisplay extends MapDisplay {
         );
 
         g.dispose();
+        getLayer().clear();
         getLayer().draw(MapTexture.fromImage(image), 0, 0);
     }
 
