@@ -1,10 +1,8 @@
 ### Zukünftige Planung
 ```
-- Automatisierte Abfahrt
-- Automatisierte Abfahrt: Zug genauer definieren. (Tag Linie + Abfahrtszeit)
-- Wiki mal ordentlich schreiben
-- Transparenz aller Farbwerte
-- Unsichtbare Rahmen
+- Automatisierte Abfahrt (Blockplace oder über ne TC Funktion, um Schilder zu aktivieren (falls vorhanden))
+- Automatisierte Abfahrt: Zug genauer definieren. (Tags: Linie + Abfahrtszeit)
+- Wiki mal ordentlich schreiben und nachbessern
 - On Demand Signs
 ```
 
