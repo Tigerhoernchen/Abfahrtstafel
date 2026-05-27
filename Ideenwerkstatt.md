@@ -8,5 +8,5 @@
 
 ### Fix für die Zukunft
 ```
-- Toggle Debug Mode Funktion. Aktuell wird die Konsole wegen der Trigger noch gut gefüllt
+- SoundMessages keine Überschneidungen
 ```
