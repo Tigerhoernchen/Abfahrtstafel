@@ -1,0 +1,25 @@
+soundMessages:
+  - id: 1
+    description: "Bitte zurückbleiben"
+    enabled: true
+    groups: Stuttgart Hbf:2,Stuttgart Hbf:16,München Hbf
+    sound: minecraft:block.note_block.pling
+    mode: interval
+    intervalSeconds: 300
+
+  - id: 2
+    description: "Werbedurchsage"
+    enabled: false
+    groups: global
+    sound: minecraft:block.note_block.pling
+    mode: random
+    minIntervalSeconds: 600
+    maxIntervalSeconds: 1200
+
+  - id: 3
+    description: "Stündlicher Hinweis"
+    enabled: true
+    groups: Stuttgart Hbf
+    sound: minecraft:block.note_block.pling
+    mode: time
+    times: 05:00,06:00,07:00

@@ -29,3 +29,6 @@ soundBoxDefaultRadius: 24
 soundBoxDefaultVolume: 1.0
 # Default pitch, can be individually changed in SoundBoxes.yml
 soundBoxDefaultPitch: 1.0
+
+# Delay of soundMessages after server start
+soundMessagesInitialDelaySeconds: 60

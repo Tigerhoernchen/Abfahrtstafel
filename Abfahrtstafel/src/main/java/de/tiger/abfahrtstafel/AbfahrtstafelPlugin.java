@@ -31,6 +31,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
     private SoundManager soundManager;
     private SoundCategory announcementSoundCategory = SoundCategory.MASTER;
     private StationAliasManager stationAliasManager;
+    private SoundMessageManager soundMessageManager;
 
     private final SignActionAbfahrt signActionAbfahrt = new SignActionAbfahrt();
     private final SignActionAnkunft signActionAnkunft = new SignActionAnkunft();
@@ -64,6 +65,16 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
         soundManager = new SoundManager(this);
         soundManager.load();
+
+        soundMessageManager = new SoundMessageManager(this);
+        soundMessageManager.load();
+
+        getServer().getScheduler().runTaskTimer(
+                this,
+                () -> soundMessageManager.tick(),
+                20L,
+                20L
+        );
 
         getLogger().info("[Abfahrtstafel] Plugin gestartet!");
         getLogger().info("[Abfahrtstafel] BKCommonLib und TrainCarts wurden gefunden!");
@@ -154,6 +165,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             warningManager.load();
             displayLayoutManager.load();
             soundManager.load();
+            soundMessageManager.load();
 
             sender.sendMessage(ChatColor.GREEN + "Dateien wurden neu geladen.");
             return true;
@@ -341,6 +353,14 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox list");
             sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox remove <id>");
             return true;
+        }
+
+        if (args.length >= 2 && args[0].equalsIgnoreCase("soundmessage")) {
+            if (!checkPermission(sender, "abfahrtstafel.admin")) {
+                return true;
+            }
+
+            return handleSoundMessageCommand(sender, args);
         }
 
         if (args.length >= 2 && args[0].equalsIgnoreCase("debug")) {
@@ -834,6 +854,65 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         return true;
     }
 
+    private boolean handleSoundMessageCommand(CommandSender sender, String[] args) {
+        if (args.length == 2 && args[1].equalsIgnoreCase("list")) {
+            sender.sendMessage(ChatColor.YELLOW + "SoundMessages:");
+
+            for (SoundMessage message : soundMessageManager.getSoundMessages()) {
+                sender.sendMessage(ChatColor.GRAY + "#" + message.getId()
+                        + " enabled=" + message.isEnabled()
+                        + " mode=" + message.getMode()
+                        + " groups=" + String.join(", ", message.getGroups())
+                        + " sound=" + message.getSound()
+                        + " description=" + message.getDescription());
+            }
+
+            return true;
+        }
+
+        if (args.length == 3 && args[1].equalsIgnoreCase("play")) {
+            int id = Integer.parseInt(args[2]);
+
+            if (soundMessageManager.playNow(id)) {
+                sender.sendMessage(ChatColor.GREEN + "SoundMessage #" + id + " abgespielt.");
+            } else {
+                sender.sendMessage(ChatColor.RED + "SoundMessage #" + id + " nicht gefunden.");
+            }
+
+            return true;
+        }
+
+        if (args.length == 3 && args[1].equalsIgnoreCase("enable")) {
+            int id = Integer.parseInt(args[2]);
+
+            if (soundMessageManager.setEnabled(id, true)) {
+                sender.sendMessage(ChatColor.GREEN + "SoundMessage #" + id + " aktiviert.");
+            } else {
+                sender.sendMessage(ChatColor.RED + "SoundMessage #" + id + " nicht gefunden.");
+            }
+
+            return true;
+        }
+
+        if (args.length == 3 && args[1].equalsIgnoreCase("disable")) {
+            int id = Integer.parseInt(args[2]);
+
+            if (soundMessageManager.setEnabled(id, false)) {
+                sender.sendMessage(ChatColor.GREEN + "SoundMessage #" + id + " deaktiviert.");
+            } else {
+                sender.sendMessage(ChatColor.RED + "SoundMessage #" + id + " nicht gefunden.");
+            }
+
+            return true;
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage list");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage play <id>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage enable <id>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage disable <id>");
+        return true;
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Station>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel place <DisplayName> <normal|glow> <Gleis> <Station>");
@@ -845,6 +924,10 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox create <Gleis> <Bahnhof>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox list");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundbox remove <id>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage list");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage play <id>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage enable <id>");
+        sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel soundmessage disable <id>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn list");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn enable <id>");
         sender.sendMessage(ChatColor.YELLOW + "/abfahrtstafel warn disable <id>");
@@ -898,6 +981,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             completions.add("layouts");
             completions.add("place");
             completions.add("reload");
+            completions.add("soundmessage");
             completions.add("soundbox");
             completions.add("warn");
             completions.add("remove");
@@ -912,6 +996,14 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
             if (args[0].equalsIgnoreCase("warn")) {
                 completions.add("list");
+                completions.add("enable");
+                completions.add("disable");
+                return filterCompletions(completions, args[1]);
+            }
+
+            if (args[0].equalsIgnoreCase("soundmessage")) {
+                completions.add("list");
+                completions.add("play");
                 completions.add("enable");
                 completions.add("disable");
                 return filterCompletions(completions, args[1]);
@@ -1001,6 +1093,18 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             return filterCompletions(completions, args[2]);
         }
 
+        if (args[0].equalsIgnoreCase("soundmessage")
+                && (args[1].equalsIgnoreCase("play")
+                || args[1].equalsIgnoreCase("enable")
+                || args[1].equalsIgnoreCase("disable"))) {
+
+            for (SoundMessage message : soundMessageManager.getSoundMessages()) {
+                completions.add(String.valueOf(message.getId()));
+            }
+
+            return filterCompletions(completions, args[2]);
+        }
+
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("debug")) {
                 completions.add("signactions");
@@ -1071,5 +1175,9 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
 
     public StationAliasManager getStationAliasManager() {
         return stationAliasManager;
+    }
+
+    public SoundMessageManager getSoundMessageManager() {
+        return soundMessageManager;
     }
 }
