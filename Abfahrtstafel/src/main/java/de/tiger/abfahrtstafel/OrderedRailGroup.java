@@ -10,10 +10,9 @@ public class OrderedRailGroup {
     private final String parentStation;
     private final boolean finalStop;
     private final List<LocalTime> departures;
-
-    // Optional: Sounds für Ankunftsansagen
     private final String arrivalPlatformSound;
     private final String arrivalTrainSound;
+    private final boolean onDemand;
 
     public OrderedRailGroup(int orderIndex,
                             String name,
@@ -21,7 +20,8 @@ public class OrderedRailGroup {
                             boolean finalStop,
                             List<LocalTime> departures,
                             String arrivalPlatformSound,
-                            String arrivalTrainSound) {
+                            String arrivalTrainSound,
+                            boolean onDemand) {
         this.orderIndex = orderIndex;
         this.name = name;
         this.parentStation = parentStation;
@@ -29,6 +29,7 @@ public class OrderedRailGroup {
         this.departures = departures;
         this.arrivalPlatformSound = arrivalPlatformSound;
         this.arrivalTrainSound = arrivalTrainSound;
+        this.onDemand = onDemand;
     }
 
     public int getOrderIndex() {
@@ -57,5 +58,9 @@ public class OrderedRailGroup {
 
     public String getArrivalTrainSound() {
         return arrivalTrainSound;
+    }
+
+    public boolean isOnDemand() {
+        return onDemand;
     }
 }

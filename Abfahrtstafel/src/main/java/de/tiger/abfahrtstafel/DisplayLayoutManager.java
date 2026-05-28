@@ -170,6 +170,7 @@ public class DisplayLayoutManager {
             String showWhen = getString(rawElement, "showWhen", "");
             String source = getString(rawElement, "source", "");
             String sortBy = getString(rawElement, "sortBy", "");
+            String filter = getString(rawElement, "filter", "");
             int limit = getInt(rawElement, "limit", 0);
             boolean blink = Boolean.parseBoolean(getString(rawElement, "blink", "false"));
             int blinkTicks = getInt(rawElement, "blinkTicks", 20);
@@ -292,6 +293,7 @@ public class DisplayLayoutManager {
                     showWhen,
                     source,
                     sortBy,
+                    filter,
                     limit,
                     font,
                     fontStyle,

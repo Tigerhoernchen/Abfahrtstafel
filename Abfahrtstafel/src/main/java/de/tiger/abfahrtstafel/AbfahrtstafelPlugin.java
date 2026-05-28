@@ -634,8 +634,7 @@ public class AbfahrtstafelPlugin extends JavaPlugin {
             frame.setFacingDirection(facing, true);
             frame.setItem(item.clone(), false);
             frame.setFixed(true);
-            frame.setVisible(true);
-            frame.setInvisible(invisibleFrames);
+            frame.setVisible(!invisibleFrames);
 
             placed++;
         }

@@ -31,6 +31,7 @@ public class DisplayElement {
     private final String zebra;
     private final String sortBy;
     private final int limit;
+    private String filter;
 
     public DisplayElement(String type,
                           String value,
@@ -52,6 +53,7 @@ public class DisplayElement {
                           String showWhen,
                           String source,
                           String sortBy,
+                          String filter,
                           int limit,
                           String font,
                           String fontStyle,
@@ -79,6 +81,7 @@ public class DisplayElement {
         this.showWhen = showWhen;
         this.source = source;
         this.sortBy = sortBy;
+        this.filter = filter;
         this.limit = limit;
         this.font = font;
         this.fontStyle = fontStyle;
@@ -194,5 +197,9 @@ public class DisplayElement {
 
     public int getLimit() {
         return limit;
+    }
+
+    public String getFilter() {
+        return filter;
     }
 }

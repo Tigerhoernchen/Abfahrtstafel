@@ -223,6 +223,7 @@ public class DepartureDisplay extends MapDisplay {
         placeholders.put("via", departure.getVia());
         placeholders.put("track", departure.getPlatform());
         placeholders.put("warnings", buildWarningText(warnings));
+        placeholders.put("onDemand", String.valueOf(departure.isOnDemand()));
     }
 
     private void fillEmptyPlatformPlaceholders(Map<String, String> placeholders,

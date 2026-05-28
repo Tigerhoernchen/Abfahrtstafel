@@ -114,6 +114,10 @@ public class LayoutRenderer {
                 placeholders.getOrDefault("onArrival", "false")
         );
 
+        boolean onDemand = "true".equalsIgnoreCase(
+                placeholders.getOrDefault("onDemand", "false")
+        );
+
         return switch (condition.toLowerCase()) {
             case "has_departure" -> hasDeparture;
             case "no_departure" -> !hasDeparture;
@@ -125,6 +129,8 @@ public class LayoutRenderer {
             case "no_via" -> !hasVia;
             case "on_arrival" -> onArrival;
             case "no_arrival" -> !onArrival;
+            case "on_demand" -> onDemand;
+            case "no_ondemand" -> !onDemand;
             default -> true;
         };
     }
@@ -200,6 +206,10 @@ public class LayoutRenderer {
         }
 
         departures = sortDepartures(departures, element.getSortBy());
+        departures = filterDepartures(
+                departures,
+                element.getFilter()
+        );
 
         int startX = element.getX();
         int startY = element.getY();
@@ -256,6 +266,11 @@ public class LayoutRenderer {
             rowPlaceholders.put("destination", departure.getDestination());
             rowPlaceholders.put("via", departure.getVia());
             rowPlaceholders.put("track", departure.getPlatform());
+            rowPlaceholders.put("onDemand", String.valueOf(departure.isOnDemand()));
+
+            String arrivalTime = departure.isOnDemand()
+                    ? null
+                    : departure.getTime();
 
             boolean rowOnArrival = AbfahrtstafelPlugin
                     .getInstance()
@@ -264,7 +279,7 @@ public class LayoutRenderer {
                             basePlaceholders.getOrDefault("station", ""),
                             departure.getPlatform(),
                             departure.getLine(),
-                            departure.getTime()
+                            arrivalTime
                     );
 
             rowPlaceholders.put("onArrival", String.valueOf(rowOnArrival));
@@ -1019,16 +1034,27 @@ public class LayoutRenderer {
     }
 
     private long getDepartureSortMinutes(Departure departure) {
-        java.time.LocalTime now = java.time.LocalTime.now();
-        java.time.LocalTime departureTime = java.time.LocalTime.parse(departure.getTime());
-
-        long minutes = java.time.Duration.between(now, departureTime).toMinutes();
-
-        if (minutes < 0) {
-            minutes += 24 * 60;
+        if (departure.isOnDemand()) {
+            return Long.MAX_VALUE;
         }
 
-        return minutes;
+        try {
+            java.time.LocalTime now = java.time.LocalTime.now();
+            java.time.LocalTime departureTime =
+                    java.time.LocalTime.parse(departure.getTime());
+
+            long minutes = java.time.Duration
+                    .between(now, departureTime)
+                    .toMinutes();
+
+            if (minutes < 0) {
+                minutes += 24 * 60;
+            }
+
+            return minutes;
+        } catch (Exception e) {
+            return Long.MAX_VALUE;
+        }
     }
 
     private long calculateMinutesUntil(Departure departure) {
@@ -1050,5 +1076,28 @@ public class LayoutRenderer {
             return 0;
         }
     }
+
+    private List<Departure> filterDepartures(List<Departure> departures, String filter) {
+
+        if (filter == null || filter.isBlank()) {
+            return departures;
+        }
+
+        return departures.stream()
+                .filter(departure -> matchesDepartureFilter(departure, filter))
+                .toList();
+    }
+
+    private boolean matchesDepartureFilter(Departure departure, String filter) {
+
+        return switch (filter.toLowerCase()) {
+            case "on_demand" -> departure.isOnDemand();
+            case "no_ondemand" -> !departure.isOnDemand();
+            case "has_delay" -> departure.getDelayMinutes() > 0;
+            case "no_delay" -> departure.getDelayMinutes() <= 0;
+            default -> true;
+        };
+    }
+
 
 }

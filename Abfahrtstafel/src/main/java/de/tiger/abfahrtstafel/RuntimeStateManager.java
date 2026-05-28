@@ -23,7 +23,6 @@ public class RuntimeStateManager {
 
     public void markProcessed(String station, String railGroup, String line, LocalTime time) {
         processedDepartures.add(createDepartureKey(station, railGroup, line, time));
-
         clearArrival(station, railGroup);
     }
 
@@ -32,7 +31,7 @@ public class RuntimeStateManager {
                            String line,
                            LocalTime departureTime) {
 
-        if (station == null || railGroup == null || line == null || departureTime == null) {
+        if (station == null || railGroup == null || line == null) {
             return;
         }
 
@@ -55,15 +54,7 @@ public class RuntimeStateManager {
                              String line,
                              String departureTimeText) {
 
-        if (station == null || railGroup == null || line == null || departureTimeText == null) {
-            return false;
-        }
-
-        LocalTime departureTime;
-
-        try {
-            departureTime = LocalTime.parse(departureTimeText);
-        } catch (Exception e) {
+        if (station == null || railGroup == null || line == null) {
             return false;
         }
 
@@ -73,8 +64,24 @@ public class RuntimeStateManager {
             return false;
         }
 
-        return state.line().equalsIgnoreCase(line)
-                && state.departureTime().equals(departureTime);
+        if (!state.line().equalsIgnoreCase(line)) {
+            return false;
+        }
+
+        if (state.departureTime() == null) {
+            return true;
+        }
+
+        if (departureTimeText == null || departureTimeText.isBlank()) {
+            return false;
+        }
+
+        try {
+            LocalTime departureTime = LocalTime.parse(departureTimeText);
+            return state.departureTime().equals(departureTime);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public void clear() {

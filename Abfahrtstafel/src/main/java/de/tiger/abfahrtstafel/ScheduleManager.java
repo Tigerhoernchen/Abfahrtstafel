@@ -59,9 +59,11 @@ public class ScheduleManager {
                 String departuresText = String.valueOf(rawGroup.get("departures"));
 
                 boolean finalStop = departuresText.equalsIgnoreCase("final");
+                boolean onDemand = departuresText.equalsIgnoreCase("ondemand");
+
                 List<LocalTime> departures = new ArrayList<>();
 
-                if (!finalStop) {
+                if (!finalStop && !onDemand) {
                     for (String part : departuresText.split(",")) {
                         departures.add(parseTime(part.trim()));
                     }
@@ -77,7 +79,8 @@ public class ScheduleManager {
                         finalStop,
                         departures,
                         arrivalPlatformSound,
-                        arrivalTrainSound
+                        arrivalTrainSound,
+                        onDemand
                 ));
             }
 
@@ -139,6 +142,15 @@ public class ScheduleManager {
 
                 if (!matchingStation || !matchingRailGroup || group.isFinalStop()) {
                     continue;
+                }
+
+                if (group.isOnDemand()) {
+                    plugin.getRuntimeStateManager().clearArrival(
+                            group.getParentStation(),
+                            group.getName()
+                    );
+
+                    return true;
                 }
 
                 for (LocalTime departureTime : group.getDepartures()) {
@@ -209,6 +221,21 @@ public class ScheduleManager {
                 String destination = findFinalDestination(groups);
                 String via = buildViaText(groups, i);
 
+                if (group.isOnDemand()) {
+                    candidates.add(new DepartureCandidate(
+                            0,
+                            "",
+                            trainLine.getName(),
+                            destination,
+                            via,
+                            group.getName(),
+                            0,
+                            true
+                    ));
+
+                    continue;
+                }
+
                 for (LocalTime departureTime : group.getDepartures()) {
                     if (isHiddenByStateOrTimeout(group.getParentStation(), group.getName(), trainLine.getName(), departureTime, now)) {
                         continue;
@@ -229,7 +256,8 @@ public class ScheduleManager {
                             destination,
                             via,
                             group.getName(),
-                            delayMinutes
+                            delayMinutes,
+                            false
                     ));
                 }
             }
@@ -259,6 +287,21 @@ public class ScheduleManager {
                 String destination = findFinalDestination(groups);
                 String via = buildViaText(groups, i);
 
+                if (group.isOnDemand()) {
+                    candidates.add(new DepartureCandidate(
+                            0,
+                            "",
+                            trainLine.getName(),
+                            destination,
+                            via,
+                            group.getName(),
+                            0,
+                            true
+                    ));
+
+                    continue;
+                }
+
                 for (LocalTime departureTime : group.getDepartures()) {
                     if (isHiddenByStateOrTimeout(group.getParentStation(), group.getName(), trainLine.getName(), departureTime, now)) {
                         continue;
@@ -279,7 +322,8 @@ public class ScheduleManager {
                             destination,
                             via,
                             group.getName(),
-                            delayMinutes
+                            delayMinutes,
+                            false
                     ));
                 }
             }
@@ -332,7 +376,7 @@ public class ScheduleManager {
                 boolean matchingStation = group.getParentStation().equalsIgnoreCase(station);
                 boolean matchingRailGroup = group.getName().equalsIgnoreCase(railGroup);
 
-                if (!matchingStation || !matchingRailGroup || group.isFinalStop()) {
+                if (!matchingStation || !matchingRailGroup || group.isFinalStop() || group.isOnDemand()) {
                     continue;
                 }
 
@@ -357,7 +401,8 @@ public class ScheduleManager {
                         candidate.destination(),
                         candidate.via(),
                         candidate.platform(),
-                        candidate.delayMinutes()
+                        candidate.delayMinutes(),
+                        candidate.onDemand()
                 ))
                 .toList();
     }
@@ -420,7 +465,8 @@ public class ScheduleManager {
             String destination,
             String via,
             String platform,
-            long delayMinutes
+            long delayMinutes,
+            boolean onDemand
     ) {
     }
 
@@ -481,6 +527,20 @@ public class ScheduleManager {
                             group.getName(),
                             trainLine.getName(),
                             LocalTime.now(),
+                            destination,
+                            via,
+                            0,
+                            group
+                    );
+                }
+
+                if (group.isOnDemand()) {
+                    return new ArrivalCandidate(
+                            0,
+                            group.getParentStation(),
+                            group.getName(),
+                            trainLine.getName(),
+                            null,
                             destination,
                             via,
                             0,

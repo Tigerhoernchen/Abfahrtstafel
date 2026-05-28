@@ -8,19 +8,22 @@ public class Departure {
     private final String via;
     private final String platform;
     private final long delayMinutes;
+    private final boolean onDemand;
 
     public Departure(String time,
                      String line,
                      String destination,
                      String via,
                      String platform,
-                     long delayMinutes) {
+                     long delayMinutes,
+                     boolean onDemand) {
         this.time = time;
         this.line = line;
         this.destination = destination;
         this.via = via;
         this.platform = platform;
         this.delayMinutes = delayMinutes;
+        this.onDemand = onDemand;
     }
 
     public long getDelayMinutes() {
@@ -45,5 +48,9 @@ public class Departure {
 
     public String getPlatform() {
         return platform;
+    }
+
+    public boolean isOnDemand() {
+        return onDemand;
     }
 }
