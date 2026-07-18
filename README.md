@@ -16,7 +16,6 @@ Dieses Plugin bringt **Zugabfahrtstafeln** auf deinen Minecraft-Server. Es zeigt
 10. Warnmeldungen
 11. Befehlsübersicht
 12. `config.yml`
-13. Schritt-für-Schritt-Beispiel
 
 ---
 
@@ -380,20 +379,3 @@ Alle Befehle beginnen mit `/abfahrtstafel` (Berechtigung `abfahrtstafel.admin`, 
 | `soundMessagesInitialDelaySeconds` | Verzögerung der ersten Ansage nach Serverstart | 60 |
 
 ---
-
-## 13. Schritt-für-Schritt-Beispiel
-
-1. Fahrplan in `TrainLines.yml` eintragen.
-2. Optional Aliase in `StationAliases.yml` ergänzen.
-3. `/abfahrtstafel reload`
-4. Schild am Gleis aufstellen:
-   ```
-   [train]
-   abfahrt
-   München Hbf:10
-   ```
-5. Anzeige platzieren (auf den Zielblock schauen):
-   ```
-   /abfahrtstafel place platform-small normal 10 München Hbf
-   ```
-6. Fertig – die Anzeige aktualisiert sich automatisch, sobald ein TrainCarts-Zug über das Schild fährt.
