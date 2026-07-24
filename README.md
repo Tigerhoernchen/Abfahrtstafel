@@ -72,8 +72,8 @@ trainLines:
         name: "10"
         parentStation: München Hbf
         departures: 08:00,09:00,10:00
-        arrivalPlatformSound: block.bell.use
-        arrivalTrainSound: block.bell.use
+        arrivalPlatformSound: minecraft:block.bell.use
+        arrivalTrainSound: minecraft:block.bell.use
 
       - orderIndex: 2
         name: "5"
@@ -90,21 +90,21 @@ trainLines:
   Feld                                Bedeutung
   ----------------------------------- -----------------------------------
   `name`                              Name der Linie (erscheint als
-                                      `{line}`)
+                                      `{line}` im Layout)
 
   `description`                       Freitext, rein informativ
 
   `orderedRailGroups`                 Die Stationen/Gleise in
                                       Fahrtreihenfolge
 
-  `orderIndex`                        Reihenfolge der Haltestelle
+  `orderIndex`                        Reihenfolge der Stationen
 
   `name` (in `orderedRailGroups`)     Gleisbezeichnung
 
   `parentStation`                     Stationsname (voll oder als Alias,
                                       siehe Kapitel 5)
 
-  `departures`                        Kommagetrennte Zeiten (`H:MM`) oder
+  `departures`                        Kommagetrennte Zeiten (`HH:MM`) oder
                                       `final` für den Endhalt
 
   `arrivalPlatformSound` /            Sound bei Einfahrt am Gleis bzw. im
