@@ -72,8 +72,8 @@ trainLines:
         name: "10"
         parentStation: München Hbf
         departures: 08:00,09:00,10:00
-        arrivalPlatformSound: timberrail:an_muc
-        arrivalTrainSound: timberrail:ice60_muc
+        arrivalPlatformSound: block.bell.use
+        arrivalTrainSound: block.bell.use
 
       - orderIndex: 2
         name: "5"
